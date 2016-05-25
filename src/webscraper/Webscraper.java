@@ -2,7 +2,6 @@ package webscraper;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -24,8 +23,6 @@ public class Webscraper {
     private CheckUrlThread checkUrlThread; //a handle to the url-check-thread
 
     private ArrayList<String> buffer = new ArrayList<>(30); //a buffer needed for asynchronous behavior
-    private LinkedList<String> sitesToBeCrawled = new LinkedList<>(); //a list of sites that shall be crawled
-    private ArrayList<String> sitesCrawled = new ArrayList<>(100); //a list of sites already crawled
 
 
     /**
@@ -33,10 +30,11 @@ public class Webscraper {
      * @param startURL the start url
      * @param option specifies the options
      */
-    public Webscraper(String startURL, int option) {
+    public Webscraper(String startURL, int option, String databaseURl) {
         try {
             url = new URL(startURL);
-            init(option);
+            init(option,databaseURl);
+            run();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -44,7 +42,7 @@ public class Webscraper {
 
     /**
      * Stops all CrawlingThreads
-     * @throws Exception
+     * @throws InterruptedException
      */
     public void stopAllCrawlingThreads() throws Exception{
         int i = threadPool.length;
@@ -91,29 +89,37 @@ public class Webscraper {
      * @param option specifies which crawling scheme shall be used
      * @throws Exception
      */
-    private void init(int option) throws Exception {
+    private void init(int option,String databaseUrl) throws Exception {
         //init db thread
-        databaseThread = new DatabaseThread();
+        if(databaseUrl!=null) {
+            databaseThread = new DatabaseThread(this,databaseUrl);
+        }
         //init scrapethreads (in threadpool)
         threadPool = new CrawlThread[MAX_THREAD];
         for (int i = 0; i < threadPool.length; i++){
             threadPool[i] = new CrawlThread(i,option,this);
         }
         //init CheckUrlThread
-        checkUrlThread = new CheckUrlThread();
+        checkUrlThread = new CheckUrlThread(this);
+    }
+
+    private void run(){
+        //let this thread pol if buffer is not empty -> flush buffer to checkUrlthread
+        while (true){
+            if(!buffer.isEmpty()){
+                flushBuffer();
+            }
+        }
     }
 
     /**
      * Returns a new Site to be crawled
      * Shall be called from crawlingThread
-     * @deprecated module
+     * @deprecated module!
      * @return a string
      */
-    public synchronized String getNewSite(){
-        //TODO returns a new Site to be crawled
-        String site = sitesToBeCrawled.remove();
-        sitesCrawled.add(site);
-        return site;
+    public synchronized URL getNewSite(){
+        return checkUrlThread.getNewSite();
     }
 
 
@@ -125,37 +131,14 @@ public class Webscraper {
      * @param statusCode the returned HTTP status code
      */
     public synchronized void siteCrawled(String s, int statusCode){
-
+        //TODO impl
     }
 
     /**
      * Flashes the buffer to the DatabaseThread
-     * @deprecated module
      */
     private void flushBuffer(){
-        for(String s: buffer){
-            addSite(s);
-        }
-    }
-
-    /**
-     * Adds a site to the sites to be crawled (if its not yet in there)
-     * TODO change this to fit URL (CheckURlThread)
-     * @param s url
-     */
-    private void addSite(String s){
-        if(!sitesCrawled.contains(s)&&!sitesToBeCrawled.contains(s)){
-            sitesToBeCrawled.add(s);
-        }
-    }
-
-    /**
-     * Adds a String to the buffer
-     * shall be called from crawling thread
-     * @param s url
-     */
-    public synchronized void addToBuffer(String s){
-        buffer.add(s);
+        checkUrlThread.addUrlToCheck(buffer);
     }
 
     /**

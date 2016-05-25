@@ -15,21 +15,17 @@ public class CheckUrlThread extends Thread {
     private boolean isChecking = false; //is this thread currently checking a url?
     private LinkedList<String> urlsToCheck; //list of urls to be checked
     private LinkedList<URL> checkedURls; //list of checked urls
-
-    public CheckUrlThread(){
-        urlsToCheck = new LinkedList<>();
-        checkedURls = new LinkedList<>();
-    }
+    private ArrayList<String> sitesCrawled = new ArrayList<>(100); //a list of sites already crawled
+    private Webscraper webscraper; //a pointer to the webscraper
 
     /**
-     * Adds an url to be checked and sets the isChecking flag
-     * @param url the url to be checked
+     * constructor for checkUrlThread
+     * @param webscraper a pointer to the webscraper
      */
-    public synchronized void addUrlToCheck(String url){
-        if(url!=null) {
-            urlsToCheck.add(url);
-            isChecking = true;
-        }
+    public CheckUrlThread(Webscraper webscraper){
+        this.webscraper = webscraper;
+        urlsToCheck = new LinkedList<>();
+        checkedURls = new LinkedList<>();
     }
 
     /**
@@ -48,12 +44,15 @@ public class CheckUrlThread extends Thread {
      */
     public void run(){
         while (running){
+            urlsToCheck.removeIf(x->sitesCrawled.contains(x));
             Iterator<String>iterator = urlsToCheck.listIterator();
             while (iterator.hasNext()){
                 try {
                     URL u = new URL(iterator.next());
-                    checkedURls.add(u);
+                    if(!checkedURls.contains(u))
+                        checkedURls.add(u);
                 }catch (MalformedURLException e){
+                    System.out.println("MalformedUrl: " + e.toString());
                     //TODO what to do with MalformedUrls?
                 }catch (Exception e){
                     e.printStackTrace();
@@ -61,7 +60,23 @@ public class CheckUrlThread extends Thread {
             }
             if(urlsToCheck.size() == 0)
                 isChecking = false;
+            try {
+                Thread.sleep(10);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
         }
+    }
+
+    /**
+     * returns a new site to be crawled and adds it to the already crawled sites
+     * @return site to be crawled
+     */
+    public URL getNewSite(){
+        URL u = checkedURls.pop();
+        if(u!=null)
+            sitesCrawled.add(u.toString());
+        return u;
     }
 
     /**

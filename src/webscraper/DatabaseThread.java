@@ -9,10 +9,23 @@ import java.util.Collection;
 public class DatabaseThread extends Thread {
 
     private ArrayList<String> writeQueue; //a queue of strings to be written to the database
+    private String databaseUrl; //a string representing the url to the database
+    private Webscraper webscraper; //a pointer to the webscraper
 
-    public DatabaseThread(){
+    public DatabaseThread(Webscraper webscraper, String databaseUrl)throws Exception{
         this.setName("DatabaseThread");
+        this.databaseUrl  = databaseUrl;
+        this.webscraper = webscraper;
         writeQueue = new ArrayList<>(300);
+        init();
+    }
+
+    /**
+     * Initializes the database connection and tests it
+     * @throws Exception throws an exception if the connect attempt fails
+     */
+    private void init() throws Exception{
+        throw new Exception("databaseError");
     }
 
     /**

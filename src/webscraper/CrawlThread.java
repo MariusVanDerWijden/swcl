@@ -48,6 +48,8 @@ public class CrawlThread extends Thread {
      * @param u The url to be fetched
      */
     public synchronized void fetchThisSite(URL u){
+        if(u==null)
+            dataToFetchOrFetching = false;
         this.url = u;
         this.URLBase = u.toExternalForm();//TODO check the fucking manual
         if(dataToFetchOrFetching){
