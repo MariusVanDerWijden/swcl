@@ -17,7 +17,13 @@ public class CrawlThread extends Thread {
     private int httpResult = 0; //the current HTTPResult, is set to zero before every crawl
     private boolean running = true; //controls whether the thread shall be running
 
-
+    /**
+     * constructor for crawl thread
+     * @param id an artificial id to name this thread
+     * @param option specifies which crawling scheme shall be used
+     * @param mainThread a pointer to the main thread
+     * @throws Exception
+     */
     public CrawlThread(int id,int option,Webscraper mainThread) throws Exception{
         this.mainThread = mainThread;
         this.id = id;
@@ -28,7 +34,7 @@ public class CrawlThread extends Thread {
                 break;
             case Webscraper.CRAWL_DICTIONARY:
                 break;
-            case Webscraper.CRAWL_ONLY_SUB_SITES:
+            case Webscraper.CRAWL_SUB_SITES:
                 break;
             default:
                 throw new Exception("Invalid option specified");

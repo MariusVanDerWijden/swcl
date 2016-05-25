@@ -10,21 +10,29 @@ import java.util.List;
  */
 public class Webscraper {
 
-    public static final int CRAWL_ONLY_SUB_SITES = 0;
-    public static final int CRAWL_ALL_LINKS = 1;
-    public static final int CRAWL_DICTIONARY = 2;
+    //Options for the crawler
+    public static final int CRAWL_SUB_SITES = 0; //crawls only sub_sites of the main site
+    public static final int CRAWL_ALL_LINKS = 1; //crawls everything
+    public static final int CRAWL_DICTIONARY = 2; //probes subdirectories based on a given dictionary
+    public static final int CRAWL_SUB_SITES_AND_SAVE_TO_DIR = 3; //crawls sub sites and saves found sites to local dir
+    public static final int CRAWL_DICTIONARY_AND_SAVE_TO_DIR = 4; //crawls based on dictionary and saves sites locally
 
-    private URL url;
-    private static int MAX_THREAD = 6;
-    private DatabaseThread databaseThread;
-    private CrawlThread[] threadPool;
-    private CheckUrlThread checkUrlThread;
+    private URL url; //the base url
+    private static int MAX_THREAD = 6; //max crawling-threads
+    private DatabaseThread databaseThread; //a handle to the database thread
+    private CrawlThread[] threadPool; //an array of crawling-threads
+    private CheckUrlThread checkUrlThread; //a handle to the url-check-thread
 
-    private ArrayList<String> buffer = new ArrayList<>(30);
-    private LinkedList<String> sitesToBeCrawled = new LinkedList<>();
-    private ArrayList<String> sitesCrawled = new ArrayList<>(100);
+    private ArrayList<String> buffer = new ArrayList<>(30); //a buffer needed for asynchronous behavior
+    private LinkedList<String> sitesToBeCrawled = new LinkedList<>(); //a list of sites that shall be crawled
+    private ArrayList<String> sitesCrawled = new ArrayList<>(100); //a list of sites already crawled
 
 
+    /**
+     * constructor for class webscraper, initializes and starts the crawling
+     * @param startURL the start url
+     * @param option specifies the options
+     */
     public Webscraper(String startURL, int option) {
         try {
             url = new URL(startURL);
@@ -132,6 +140,7 @@ public class Webscraper {
 
     /**
      * Adds a site to the sites to be crawled (if its not yet in there)
+     * TODO change this to fit URL (CheckURlThread)
      * @param s url
      */
     private void addSite(String s){
@@ -160,7 +169,7 @@ public class Webscraper {
 
     /**
      * Writes a string to the database
-     * @deprecated is currently synchronous shall ba asynchronous
+     * @deprecated is currently synchronous shall be asynchronous
      * @param s the string to be written
      * @return returns a boolean whether the operation was successful
      */

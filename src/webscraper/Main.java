@@ -6,7 +6,6 @@ package webscraper;
 public class Main {
 
     public static void main(String[] args){
-        //TODO host me on a git (github?) (cleanup! (a new workspace!))
         //TODO use the String[] args to provide params for the crawler
         //TODO maybe put .js links in another db table
         //TODO maybe put ftp links in another db table
