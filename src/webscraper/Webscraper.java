@@ -9,18 +9,15 @@ import java.util.List;
  */
 public class Webscraper {
 
-    //Options for the crawler
-    public static final int CRAWL_SUB_SITES = 0; //crawls only sub_sites of the main site
-    public static final int CRAWL_ALL_LINKS = 1; //crawls everything
-    public static final int CRAWL_DICTIONARY = 2; //probes subdirectories based on a given dictionary
-    public static final int CRAWL_SUB_SITES_AND_SAVE_TO_DIR = 3; //crawls sub sites and saves found sites to local dir
-    public static final int CRAWL_DICTIONARY_AND_SAVE_TO_DIR = 4; //crawls based on dictionary and saves sites locally
-
     private URL url; //the base url
     private static int MAX_THREAD = 6; //max crawling-threads
     private DatabaseThread databaseThread; //a handle to the database thread
     private CrawlThread[] threadPool; //an array of crawling-threads
+    private boolean[] threadPoolBusy; //an array indicating whether a thread is busy
     private CheckUrlThread checkUrlThread; //a handle to the url-check-thread
+    private int[] httpResponseCodes = new int[1024]; //an array counting the num of http-response codes
+    private Options options; //Options to be used
+    private boolean saveToDir; //shall we save every Site?
 
     private ArrayList<String> buffer = new ArrayList<>(30); //a buffer needed for asynchronous behavior
 
@@ -30,9 +27,10 @@ public class Webscraper {
      * @param startURL the start url
      * @param option specifies the options
      */
-    public Webscraper(String startURL, int option, String databaseURl) {
+    public Webscraper(String startURL, Options option, String databaseURl) {
         try {
             url = new URL(startURL);
+            this.options = option;
             init(option,databaseURl);
             run();
         } catch (Exception e) {
@@ -89,48 +87,64 @@ public class Webscraper {
      * @param option specifies which crawling scheme shall be used
      * @throws Exception
      */
-    private void init(int option,String databaseUrl) throws Exception {
+    private void init(Options option,String databaseUrl) throws Exception {
         //init db thread
+        saveToDir = options == Options.CRAWL_DICTIONARY_AND_SAVE_TO_DIR
+                || options == Options.CRAWL_SUB_SITES_AND_SAVE_TO_DIR;
         if(databaseUrl!=null) {
             databaseThread = new DatabaseThread(this,databaseUrl);
         }
         //init scrapethreads (in threadpool)
         threadPool = new CrawlThread[MAX_THREAD];
+        threadPoolBusy = new boolean[MAX_THREAD];
         for (int i = 0; i < threadPool.length; i++){
+            threadPoolBusy[i] = false;
             threadPool[i] = new CrawlThread(i,option,this);
         }
         //init CheckUrlThread
         checkUrlThread = new CheckUrlThread(this);
     }
 
+    /**
+     * main routine
+     * checks whether a thread is busy and gives them a new URL
+     */
     private void run(){
-        //let this thread pol if buffer is not empty -> flush buffer to checkUrlthread
         while (true){
             if(!buffer.isEmpty()){
                 flushBuffer();
             }
+            for(int i = 0; i < threadPoolBusy.length; i++){
+                if(!threadPoolBusy[i]){
+                    threadPoolBusy[i] = true;
+                    threadPool[i].fetchThisSite(checkUrlThread.getNewSite());
+                }
+            }
+            try{
+                Thread.sleep(10);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            //TODO check if recursion is finished or poll for user input
         }
     }
 
     /**
-     * Returns a new Site to be crawled
-     * Shall be called from crawlingThread
-     * @deprecated module!
-     * @return a string
-     */
-    public synchronized URL getNewSite(){
-        return checkUrlThread.getNewSite();
-    }
-
-
-
-    /**
      * shall be called from CrawlingThread, whenever a Site was crawled
      * param specifies the return code (HTTP Status code)
-     * @param s The site which was crawled
+     * @param url The site which was crawled
+     * @param data the data which was found under this url
+     * @param threadId the id of the thread which crawled this site and is now happy to have more load
      * @param statusCode the returned HTTP status code
      */
-    public synchronized void siteCrawled(String s, int statusCode){
+    public synchronized void siteCrawled(String url,String data, int statusCode,int threadId){
+        threadPoolBusy[threadId] = false;
+        httpResponseCodes[statusCode]++;
+        if (saveToDir) {
+            if(data!=null) {
+                //Save the data to a subdirectory
+            }
+        }
         //TODO impl
     }
 

@@ -24,11 +24,12 @@ public class CrawlThread extends Thread {
      * @param mainThread a pointer to the main thread
      * @throws Exception
      */
-    public CrawlThread(int id,int option,Webscraper mainThread) throws Exception{
+    public CrawlThread(int id,Options option,Webscraper mainThread) throws Exception{
         this.mainThread = mainThread;
         this.id = id;
         this.setName("CrawlThread"+id);
         //TODO is this the right place? or is this just a fantasy
+        /*
         switch (option){
             case Webscraper.CRAWL_ALL_LINKS:
                 break;
@@ -39,6 +40,7 @@ public class CrawlThread extends Thread {
             default:
                 throw new Exception("Invalid option specified");
         }
+        */
     }
 
     /**
@@ -66,14 +68,15 @@ public class CrawlThread extends Thread {
         while (running) {
             if (dataToFetchOrFetching){
                 ArrayList<String> foundUrls = null;
+                String site = null;
                 try {
-                    String site = fetchURL(url);
+                    site = fetchURL(url);
                     foundUrls = crawlStringForURLS(site);
                     mainThread.addToBuffer(foundUrls);
                 } catch (Exception e) {
                     printException(id, e, foundUrls);
                 } finally {
-                    mainThread.siteCrawled(url.toString(), httpResult);
+                    mainThread.siteCrawled(url.toString(),site, httpResult,id);
                     dataToFetchOrFetching = false;
                 }
             }
@@ -93,7 +96,7 @@ public class CrawlThread extends Thread {
     private String fetchURL(URL u){
         httpResult = 0;
         try{
-
+            //TODO find fastest way to download a site
         }catch (Exception e){
             printException(id,e,u.toString());
         }
@@ -114,32 +117,38 @@ public class CrawlThread extends Thread {
 
     /**
      * Extracts all usages of href="data" and filters them
-     * //TODO test this
-     //TODO look at some wellformed html
      * @param s The String to extract from
      * @return Returns an Array containing all valid uRLS
      */
     private ArrayList<String> extractHREF(String s){
         ArrayList<String>extractedURls = new ArrayList<>(100);
         StringBuilder temp = new StringBuilder();
-        s = s.toLowerCase(); //TODO check runtime of this operation
         try {
             for (int i = 0; i < s.length(); i++) {
-                if (s.charAt(i++) == 'h')
-                    if (s.charAt(i++)== 'r')
-                        if(s.charAt(i++)=='e')
-                            if(s.charAt(i++)=='f'){
+                if (s.charAt(i) == 'h'||s.charAt(i)=='H'){
+                    i++;
+                    if (s.charAt(i)== 'r'||s.charAt(i)=='R'){
+                        i++;
+                        if(s.charAt(i)=='e'||s.charAt(i)=='E') {
+                            i++;
+                            if(s.charAt(i)=='f'||s.charAt(i)=='F'){
+                                i++;
                                 while(s.charAt(i)==' ')i++;
                                 if(s.charAt(i++)=='='){
                                     while(s.charAt(i)==' ')i++;
                                     if(s.charAt(i++)=='\"'){
                                         temp.delete(0,temp.length());
-                                        while (s.charAt(i)!='\"')
+                                        while (s.charAt(i)!='\"') {
                                             temp.append(s.charAt(i++));
+                                        }
                                         extractedURls.add(temp.toString());
                                     }
                                 }
                             }
+                        }
+                    }
+                    --i;
+                }
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -154,6 +163,7 @@ public class CrawlThread extends Thread {
      */
     private ArrayList<String> filterUrls(ArrayList<String> list){
         for(String s: list){
+            //TODO sanitize url(delete ?params)
             if(!isURL(s)){
                 list.remove(s);
                 if(isSubDir(s)){
@@ -211,7 +221,6 @@ public class CrawlThread extends Thread {
 
     /**
      * Politely asks this thread to stop (after this operation
-     //TODO impl
      * @return a boolean whether the thread stopped
      */
     public synchronized boolean stopThread(){

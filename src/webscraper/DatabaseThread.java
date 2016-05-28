@@ -1,5 +1,6 @@
 package webscraper;
 
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -11,6 +12,8 @@ public class DatabaseThread extends Thread {
     private ArrayList<String> writeQueue; //a queue of strings to be written to the database
     private String databaseUrl; //a string representing the url to the database
     private Webscraper webscraper; //a pointer to the webscraper
+
+    private PreparedStatement prepState; //TODO use preparedStatements
 
     public DatabaseThread(Webscraper webscraper, String databaseUrl)throws Exception{
         this.setName("DatabaseThread");
@@ -58,6 +61,8 @@ public class DatabaseThread extends Thread {
 
     /**
      * the main routine
+     * checks whether there's something to commit to the database
+     * or if a url is already in the database
      */
     public void run(){
 
