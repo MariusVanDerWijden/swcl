@@ -1,5 +1,6 @@
 package webscraper;
 
+import java.io.BufferedInputStream;
 import java.net.URL;
 import java.util.ArrayList;
 
@@ -14,8 +15,8 @@ public class CrawlThread extends Thread {
     private Webscraper mainThread; //a pointer to the main thread
     private int id; //unique Identifier for this thread
     private boolean dataToFetchOrFetching; //states whether the thread is currently fetching a site
-    private int httpResult = 0; //the current HTTPResult, is set to zero before every crawl
     private boolean running = true; //controls whether the thread shall be running
+    BufferedInputStream inputStream = null;
 
     /**
      * constructor for crawl thread
@@ -50,10 +51,17 @@ public class CrawlThread extends Thread {
      * @param u The url to be fetched
      */
     public synchronized void fetchThisSite(URL u){
-        if(u==null)
+        if(u==null) {
             dataToFetchOrFetching = false;
+            return;
+        }
         this.url = u;
-        this.URLBase = u.toExternalForm();//TODO check the fucking manual
+        try {
+            this.URLBase = u.getProtocol() + "://" + u.getAuthority();
+        }catch (Exception e){
+            System.out.println("ERROR WHILE GETTING THE PROTOCOL: "+u.toString());
+            e.printStackTrace();
+        }
         if(dataToFetchOrFetching){
             printException(id,new Exception("Thread is still fetching Data"),"Url: "+u.toString());
         }else{
@@ -76,7 +84,7 @@ public class CrawlThread extends Thread {
                 } catch (Exception e) {
                     printException(id, e, foundUrls);
                 } finally {
-                    mainThread.siteCrawled(url.toString(),site, httpResult,id);
+                    mainThread.siteCrawled(url.toString(),site,id);
                     dataToFetchOrFetching = false;
                 }
             }
@@ -94,14 +102,27 @@ public class CrawlThread extends Thread {
      * @return the string representing the site
      */
     private String fetchURL(URL u){
-        httpResult = 0;
         try{
-            //TODO find fastest way to download a site
+            inputStream = new BufferedInputStream(u.openStream());
+            int i;
+            StringBuilder sb = new StringBuilder();
+            while ((i = inputStream.read())!= -1){
+                sb.append((char)i);
+            }
+            return sb.toString();
         }catch (Exception e){
             printException(id,e,u.toString());
+        }finally {
+            if(inputStream!=null){
+                try{
+                    inputStream.close();
+                }catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
-        //TODO impl
-        return "";
+        return null;
     }
 
 

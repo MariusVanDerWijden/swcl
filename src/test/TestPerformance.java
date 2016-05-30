@@ -1,7 +1,9 @@
 package test;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.net.URL;
 import java.util.ArrayList;
 
 /**
@@ -28,7 +30,16 @@ public class TestPerformance {
         list2.forEach(x->System.out.println(x));
         extractMailto(site).forEach(x->System.out.println(x));
         checkEndWith(list2);
-
+        checkStartsWithBetter(list2);
+        try {
+            long l1 = System.currentTimeMillis();
+            String s = fetchURL(new URL("http://www.web.de"));
+            long l2 = System.currentTimeMillis();
+            System.out.println(s);
+            System.out.println("fetchUrl :" + (l2-l1)+"size: "+s.length());
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     private static ArrayList<String> extractHREF2(String s){
@@ -132,24 +143,103 @@ public class TestPerformance {
     }
 
     private static boolean endsWith(String s){
-        return s.endsWith(".html")||s.endsWith(".htm");
+        return s.endsWith(".html")||s.endsWith(".htm")||s.endsWith("/");
     }
 
     private static boolean endsWith2(String s){
         if(s.length()<5)return false;
-        for(int i = s.length()-1; i > 0; i--){
-            if(s.charAt(i)=='l')i--;
-            if(s.charAt(i--)=='m'){
-                if(s.charAt(i--)=='t'){
-                    if(s.charAt(i--)=='h'){
-                        if(s.charAt(i)=='.'){
-                            return true;
+        int i = s.length()-1;
+        if(s.charAt(i)=='/') return true;
+        if(s.charAt(i)=='l')i--;
+        if(s.charAt(i--)=='m'){
+            if(s.charAt(i--)=='t'){
+                if(s.charAt(i--)=='h'){
+                    if(s.charAt(i)=='.'){
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String sanitizeUrl(String s){
+        if(endsWith2(s))return s;
+        if(s.contains("?")){
+            return s.substring(0,s.indexOf("?"));
+        }
+        return null;
+    }
+
+    private static void checkStartsWithBetter(ArrayList<String> list){
+        double d = 0;
+        for(int i = 0; i < 1000; i++){
+            d += checkStartsWith(list);
+        }
+        System.out.println(d/1000);
+    }
+
+    private static double checkStartsWith(ArrayList<String> list){
+        int i = 0;
+        int q = 0;
+        double l1 = System.nanoTime();
+        for(String s: list){
+            if(startsWith(s))
+                i++;
+        }
+        double l2 = System.nanoTime();
+        double l3 = System.nanoTime();
+        for(String s: list){
+            if(startsWith2(s))
+                q++;
+        }
+        double l4 = System.nanoTime();
+        //System.out.println("startsWith  :" + (l2-l1)+" size: "+i);
+        //System.out.println("startsWith2 :" + (l4-l3)+" size: "+q);
+        //System.out.println();
+        return (l2-l1)/(l4-l3);
+    }
+
+    private static boolean startsWith(String s){
+        return s.startsWith("http://");
+    }
+
+    private static boolean startsWith2(String s){
+        int i = 0;
+        if(s.charAt(i++)=='h'){
+            if(s.charAt(i++)=='t'){
+                if(s.charAt(i++)=='t'){
+                    if(s.charAt(i++)=='p'){
+                        if(s.charAt(i++)==':'){
+                            if(s.charAt(i++)=='/'){
+                                if(s.charAt(i)=='/'){
+                                    return true;
+                                }
+                            }
                         }
                     }
                 }
             }
-            return false;
         }
         return false;
     }
+
+
+    private static String fetchURL(URL u){
+        try{
+            BufferedInputStream inputStream = new BufferedInputStream(u.openStream());
+            int i;
+            StringBuilder sb = new StringBuilder();
+            while ((i = inputStream.read())!= -1){
+                sb.append((char)i);
+            }
+            inputStream.close();
+            return sb.toString();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        //TODO impl
+        return null;
+    }
+
 }

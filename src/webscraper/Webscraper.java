@@ -15,7 +15,6 @@ public class Webscraper {
     private CrawlThread[] threadPool; //an array of crawling-threads
     private boolean[] threadPoolBusy; //an array indicating whether a thread is busy
     private CheckUrlThread checkUrlThread; //a handle to the url-check-thread
-    private int[] httpResponseCodes = new int[1024]; //an array counting the num of http-response codes
     private Options options; //Options to be used
     private boolean saveToDir; //shall we save every Site?
 
@@ -135,11 +134,9 @@ public class Webscraper {
      * @param url The site which was crawled
      * @param data the data which was found under this url
      * @param threadId the id of the thread which crawled this site and is now happy to have more load
-     * @param statusCode the returned HTTP status code
      */
-    public synchronized void siteCrawled(String url,String data, int statusCode,int threadId){
+    public synchronized void siteCrawled(String url,String data, int threadId){
         threadPoolBusy[threadId] = false;
-        httpResponseCodes[statusCode]++;
         if (saveToDir) {
             if(data!=null) {
                 //Save the data to a subdirectory
