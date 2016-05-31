@@ -163,13 +163,7 @@ public class TestPerformance {
         return false;
     }
 
-    private static String sanitizeUrl(String s){
-        if(endsWith2(s))return s;
-        if(s.contains("?")){
-            return s.substring(0,s.indexOf("?"));
-        }
-        return null;
-    }
+
 
     private static void checkStartsWithBetter(ArrayList<String> list){
         double d = 0;
@@ -200,6 +194,7 @@ public class TestPerformance {
         return (l2-l1)/(l4-l3);
     }
 
+    //TODO check this again! and put it in CrawlThread
     private static boolean startsWith(String s){
         return s.startsWith("http://");
     }
@@ -238,7 +233,6 @@ public class TestPerformance {
         }catch (Exception e){
             e.printStackTrace();
         }
-        //TODO impl
         return null;
     }
 

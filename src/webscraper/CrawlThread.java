@@ -3,6 +3,7 @@ package webscraper;
 import java.io.BufferedInputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Created by matematik on 4/29/16.
@@ -16,32 +17,18 @@ public class CrawlThread extends Thread {
     private int id; //unique Identifier for this thread
     private boolean dataToFetchOrFetching; //states whether the thread is currently fetching a site
     private boolean running = true; //controls whether the thread shall be running
-    BufferedInputStream inputStream = null;
+    BufferedInputStream inputStream = null; //the input stream
 
     /**
      * constructor for crawl thread
      * @param id an artificial id to name this thread
-     * @param option specifies which crawling scheme shall be used
      * @param mainThread a pointer to the main thread
      * @throws Exception
      */
-    public CrawlThread(int id,Options option,Webscraper mainThread) throws Exception{
+    public CrawlThread(int id,Webscraper mainThread) throws Exception{
         this.mainThread = mainThread;
         this.id = id;
         this.setName("CrawlThread"+id);
-        //TODO is this the right place? or is this just a fantasy
-        /*
-        switch (option){
-            case Webscraper.CRAWL_ALL_LINKS:
-                break;
-            case Webscraper.CRAWL_DICTIONARY:
-                break;
-            case Webscraper.CRAWL_SUB_SITES:
-                break;
-            default:
-                throw new Exception("Invalid option specified");
-        }
-        */
     }
 
     /**
@@ -127,7 +114,7 @@ public class CrawlThread extends Thread {
 
 
     /**
-     * Serches the given String for valid Urls
+     * Searches the given String for valid Urls
      * @param s the string to extract from
      * @return a list of found strings looking like urls (have to be filtered later)
      */
@@ -178,50 +165,58 @@ public class CrawlThread extends Thread {
     }
 
     /**
-     * Filters a List of Strings, and returns the ones being valid URLs or Sub-directories
+     * Filters a list of strings, and returns the ones being valid URLs or Sub-directories
      * @param list the list to filter
      * @return the filtered list
      */
     private ArrayList<String> filterUrls(ArrayList<String> list){
-        for(String s: list){
-            //TODO sanitize url(delete ?params)
-            if(!isURL(s)){
-                list.remove(s);
-                if(isSubDir(s)){
-                    list.add(toSubDirURL(s));
+        Iterator<String> iterator = list.listIterator();
+        while (iterator.hasNext()){
+            String s = iterator.next();
+            if(!endsWithValidSeq(s)){
+                if(s.contains("?")){
+                    list.remove(s);
+                    list.add(s.substring(0,s.indexOf("?")));
+                }else{
+                    list.remove(s);
                 }
+            }
+            if(isSubDir(s)){
+                list.remove(s);
+                list.add(toSubDirURL(s));
             }
         }
         return list;
     }
 
     /**
-     * Checks whether a String is a valid URL
-     * @param s the string
-     * @return a boolean
-     */
-    private boolean isURL(String s){
-        //TODO impl
-        return false;
-    }
-
-    /**
-     * Checks whether the url ends with a valid ending
-     * @param s the string
+     * checks whether a string ends with .html , .htm or /
+     //TODO make a list of compatible files
+     //TODO check whether html accepts things like http://reddit.com/index
+     * @param s the string to check
      * @return a boolean
      */
     private boolean endsWithValidSeq(String s){
-        if(s.endsWith(".htm"))return true;
-        if(s.endsWith(".html")) return true;
-        //TODO check the runtime complexity of String.endsWith(String)
-        //TODO make a list of compatible files
-        //TODO check whether html accepts things like http://reddit.com/index
+        if(s.length()<5)return false;
+        int i = s.length()-1;
+        if(s.charAt(i)=='/') return true;
+        if(s.charAt(i)=='l')i--;
+        if(s.charAt(i--)=='m'){
+            if(s.charAt(i--)=='t'){
+                if(s.charAt(i--)=='h'){
+                    if(s.charAt(i)=='.'){
+                        return true;
+                    }
+                }
+            }
+        }
         return false;
     }
 
     /**
      * Checks whether the string may be a valid subdirectory
      //TODO this is to simple (ex. href="index.html")
+     //TODO this is to simple! (ex href="http://"
      * @param s the string
      * @return a boolean
      */
