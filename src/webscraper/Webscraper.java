@@ -31,6 +31,8 @@ public class Webscraper {
             url = new URL(startURL);
             this.options = option;
             init(option,databaseURl);
+            threadPool[0].fetchThisSite(url);
+            threadPoolBusy[0] = true;
             run();
         } catch (Exception e) {
             e.printStackTrace();
@@ -91,17 +93,20 @@ public class Webscraper {
         saveToDir = options == Options.CRAWL_DICTIONARY_AND_SAVE_TO_DIR
                 || options == Options.CRAWL_SUB_SITES_AND_SAVE_TO_DIR;
         if(databaseUrl!=null) {
-            databaseThread = new DatabaseThread(this,databaseUrl);
+            //databaseThread = new DatabaseThread(this,databaseUrl);
+            //databseThread.start();
         }
         //init scrapethreads (in threadpool)
         threadPool = new CrawlThread[MAX_THREAD];
         threadPoolBusy = new boolean[MAX_THREAD];
         for (int i = 0; i < threadPool.length; i++){
             threadPoolBusy[i] = false;
-            threadPool[i] = new CrawlThread(i,option,this);
+            threadPool[i] = new CrawlThread(i,this);
+            threadPool[i].start();
         }
         //init CheckUrlThread
         checkUrlThread = new CheckUrlThread(this);
+        checkUrlThread.start();
     }
 
     /**
@@ -116,6 +121,7 @@ public class Webscraper {
             for(int i = 0; i < threadPoolBusy.length; i++){
                 if(!threadPoolBusy[i]){
                     threadPoolBusy[i] = true;
+                    //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
                     threadPool[i].fetchThisSite(checkUrlThread.getNewSite());
                 }
             }
@@ -124,6 +130,7 @@ public class Webscraper {
             }catch (Exception e){
                 e.printStackTrace();
             }
+            //maybe check every ten seconds if all threads are busy
             //TODO check if recursion is finished or poll for user input
         }
     }
@@ -139,10 +146,15 @@ public class Webscraper {
         threadPoolBusy[threadId] = false;
         if (saveToDir) {
             if(data!=null) {
+                //TODO impl
                 //Save the data to a subdirectory
             }
         }
         //TODO impl
+    }
+
+    private void saveToFile(String data, String path){
+        //TODO impl, what to do with path -> save (maybe mkdir?)
     }
 
     /**
@@ -157,7 +169,11 @@ public class Webscraper {
      * @param list list of urls
      */
     public synchronized void addToBuffer(List<String> list){
+        if(list==null)return;
         buffer.addAll(list);
+        //TODO this I'm only for tests, delete me please
+        System.out.println("###############################################################################");
+        list.forEach(x->System.out.println(x));
     }
 
 

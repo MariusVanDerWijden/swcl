@@ -16,7 +16,7 @@ public class CheckUrlThread extends Thread {
     private LinkedList<String> urlsToCheck; //list of urls to be checked
     private LinkedList<URL> checkedURls; //list of checked urls
     private ArrayList<String> sitesCrawled = new ArrayList<>(100); //a list of sites already crawled
-    private Webscraper webscraper; //a pointer to the webscraper
+    private Webscraper webscraper; //a pointer to the webscraper TODO whats my purpose in life?
 
     /**
      * constructor for checkUrlThread
@@ -73,10 +73,13 @@ public class CheckUrlThread extends Thread {
      * @return site to be crawled
      */
     public URL getNewSite(){
-        URL u = checkedURls.pop();
-        if(u!=null)
-            sitesCrawled.add(u.toString());
-        return u;
+        if(checkedURls.peek()!=null) {
+            URL u = checkedURls.pop();
+            if (u != null)
+                sitesCrawled.add(u.toString());
+            return u;
+        }
+        return null;
     }
 
     /**

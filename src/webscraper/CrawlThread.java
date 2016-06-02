@@ -89,6 +89,7 @@ public class CrawlThread extends Thread {
      * @return the string representing the site
      */
     private String fetchURL(URL u){
+        if(u==null)return null;
         try{
             inputStream = new BufferedInputStream(u.openStream());
             int i;
@@ -129,6 +130,7 @@ public class CrawlThread extends Thread {
      * @return Returns an Array containing all valid uRLS
      */
     private ArrayList<String> extractHREF(String s){
+        if(s==null)return null;
         ArrayList<String>extractedURls = new ArrayList<>(100);
         StringBuilder temp = new StringBuilder();
         try {

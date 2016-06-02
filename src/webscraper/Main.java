@@ -10,11 +10,11 @@ public class Main {
         //TODO maybe put .js links in another db table
         //TODO maybe put ftp links in another db table
         //TODO maybe put src="picture.png" links in another table
-        //TODO maybe put mailto: links in another db
+        //TODO maybe put mailto="" links in another db
         //TODO whats with fucking ?params
         //TODO make the database optional
         //TODO check the load on each thread and find bottlenecks
-        Webscraper w = new Webscraper("http://127.0.0.1",Options.CRAWL_ALL_LINKS,"databaseUrl");
+        Webscraper w = new Webscraper("http://www.web.de",Options.CRAWL_ALL_LINKS,"databaseUrl");
         //TODO cleanup after yourself
     }
 
