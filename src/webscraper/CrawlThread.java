@@ -3,7 +3,7 @@ package webscraper;
 import java.io.BufferedInputStream;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.ListIterator;
 
 /**
  * Created by matematik on 4/29/16.
@@ -172,20 +172,23 @@ public class CrawlThread extends Thread {
      * @return the filtered list
      */
     private ArrayList<String> filterUrls(ArrayList<String> list){
-        Iterator<String> iterator = list.listIterator();
+        ListIterator<String> iterator = list.listIterator();
         while (iterator.hasNext()){
             String s = iterator.next();
             if(!endsWithValidSeq(s)){
                 if(s.contains("?")){
-                    list.remove(s);
-                    list.add(s.substring(0,s.indexOf("?")));
+                    iterator.remove();
+                    if(isSubDir(s)){
+                        iterator.add(toSubDirURL(s.substring(0,s.indexOf("?"))));
+                    }else {
+                        iterator.add(s.substring(0,s.indexOf("?")));
+                    }
                 }else{
-                    list.remove(s);
+                    iterator.remove(); //TODO here
                 }
-            }
-            if(isSubDir(s)){
-                list.remove(s);
-                list.add(toSubDirURL(s));
+            }else if(isSubDir(s)){
+                iterator.remove(); //TODO threw an IllegalStateException, test if it's better now
+                iterator.add(toSubDirURL(s));
             }
         }
         return list;

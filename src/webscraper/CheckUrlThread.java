@@ -15,6 +15,7 @@ public class CheckUrlThread extends Thread {
     private boolean isChecking = false; //is this thread currently checking a url?
     private LinkedList<String> urlsToCheck; //list of urls to be checked
     private LinkedList<URL> checkedURls; //list of checked urls
+    private LinkedList<String> buffer; //a buffer to prevent concurrentModExceptions
     private ArrayList<String> sitesCrawled = new ArrayList<>(100); //a list of sites already crawled
     private Webscraper webscraper; //a pointer to the webscraper TODO whats my purpose in life?
 
@@ -26,6 +27,7 @@ public class CheckUrlThread extends Thread {
         this.webscraper = webscraper;
         urlsToCheck = new LinkedList<>();
         checkedURls = new LinkedList<>();
+        buffer = new LinkedList<>();
     }
 
     /**
@@ -34,7 +36,7 @@ public class CheckUrlThread extends Thread {
      */
     public synchronized void addUrlToCheck(ArrayList<String> urls){
         if(urls != null && urls.size() > 0) {
-            urlsToCheck.addAll(urls);
+            buffer.addAll(urls);
             isChecking = true;
         }
     }
@@ -45,10 +47,12 @@ public class CheckUrlThread extends Thread {
     public void run(){
         while (running){
             urlsToCheck.removeIf(x->sitesCrawled.contains(x));
+            if(buffer!=null)
+            urlsToCheck.addAll(buffer);
             Iterator<String>iterator = urlsToCheck.listIterator();
             while (iterator.hasNext()){
                 try {
-                    URL u = new URL(iterator.next());
+                    URL u = new URL(iterator.next());//TODO currently throws ConcurrentModificationException
                     if(!checkedURls.contains(u))
                         checkedURls.add(u);
                 }catch (MalformedURLException e){
