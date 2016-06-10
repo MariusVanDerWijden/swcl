@@ -1,7 +1,10 @@
 package webscraper;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.ListIterator;
 
@@ -13,6 +16,7 @@ public class CrawlThread extends Thread {
     //TODO impl!
     private URL url; //reddit.com/asdf/index.html
     private String URLBase; //reddit.com/asdf
+    private int httpResponse; //httpResponseCode
     private Webscraper mainThread; //a pointer to the main thread
     private int id; //unique Identifier for this thread
     private boolean dataToFetchOrFetching; //states whether the thread is currently fetching a site
@@ -64,6 +68,7 @@ public class CrawlThread extends Thread {
             if (dataToFetchOrFetching){
                 ArrayList<String> foundUrls = null;
                 String site = null;
+                this.httpResponse = -1;
                 try {
                     site = fetchURL(url);
                     foundUrls = crawlStringForURLS(site);
@@ -85,32 +90,38 @@ public class CrawlThread extends Thread {
 
     /**
      * Fetches the given Url for the html site
-     * @param u the url to be crawled
+     * @param url the url to be crawled
      * @return the string representing the site
      */
-    private String fetchURL(URL u){
-        if(u==null)return null;
+    private String fetchURL(URL url){
+        if(url==null)return null;
         try{
-            inputStream = new BufferedInputStream(u.openStream());
-            int i;
-            StringBuilder sb = new StringBuilder();
-            while ((i = inputStream.read())!= -1){
-                sb.append((char)i);
+            URLConnection uc = url.openConnection();
+            uc.setRequestProperty("User-Agent", "");
+            uc.connect();
+            BufferedReader inB = new BufferedReader(new InputStreamReader(uc.getInputStream()));
+            StringBuilder stringBuilder = new StringBuilder();
+            String tmp;
+            while ((tmp = inB.readLine()) != null){
+                stringBuilder.append(tmp);
             }
-            return sb.toString();
-        }catch (Exception e){
-            printException(id,e,u.toString());
-        }finally {
-            if(inputStream!=null){
-                try{
-                    inputStream.close();
-                }catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-
+            inB.close();
+            httpResponse = 200;
+            return stringBuilder.toString();
+        }catch(Exception e){
+            handleException(e,url.toString());
+            return null;
         }
-        return null;
+    }
+
+    private void handleException(Exception e, String base){
+        String s = e.toString();
+        if(s.contains("Server returned HTTP response code")){
+            String tmp[] = s.split("[:]");
+            int responseCode = Integer.parseInt(tmp[2].substring(1, 4));
+            httpResponse = responseCode;
+        }
+        System.out.println(s+base);
     }
 
 
