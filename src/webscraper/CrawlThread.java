@@ -76,7 +76,7 @@ public class CrawlThread extends Thread {
                 } catch (Exception e) {
                     printException(id, e, foundUrls);
                 } finally {
-                    mainThread.siteCrawled(url.toString(),site,id);
+                    mainThread.siteCrawled(url.toString(),site,id,httpResponse);
                     dataToFetchOrFetching = false;
                 }
             }
