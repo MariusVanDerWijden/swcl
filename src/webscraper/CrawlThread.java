@@ -1,6 +1,5 @@
 package webscraper;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -21,7 +20,9 @@ public class CrawlThread extends Thread {
     private int id; //unique Identifier for this thread
     private boolean dataToFetchOrFetching; //states whether the thread is currently fetching a site
     private boolean running = true; //controls whether the thread shall be running
-    BufferedInputStream inputStream = null; //the input stream
+    private URLConnection uc;
+    private BufferedReader inB;
+    private StringBuilder stringBuilder = new StringBuilder();
 
     /**
      * constructor for crawl thread
@@ -29,7 +30,7 @@ public class CrawlThread extends Thread {
      * @param mainThread a pointer to the main thread
      * @throws Exception
      */
-    public CrawlThread(int id,Webscraper mainThread) throws Exception{
+    public CrawlThread(int id, Webscraper mainThread) throws Exception{
         this.mainThread = mainThread;
         this.id = id;
         this.setName("CrawlThread"+id);
@@ -72,11 +73,10 @@ public class CrawlThread extends Thread {
                 try {
                     site = fetchURL(url);
                     foundUrls = crawlStringForURLS(site);
-                    mainThread.addToBuffer(foundUrls);
                 } catch (Exception e) {
                     printException(id, e, foundUrls);
                 } finally {
-                    mainThread.siteCrawled(url.toString(),site,id,httpResponse);
+                    mainThread.siteCrawled(url.toString(),site,id,httpResponse,foundUrls);
                     dataToFetchOrFetching = false;
                 }
             }
@@ -96,11 +96,11 @@ public class CrawlThread extends Thread {
     private String fetchURL(URL url){
         if(url==null)return null;
         try{
-            URLConnection uc = url.openConnection();
-            uc.setRequestProperty("User-Agent", "");
+            uc = url.openConnection();
+            uc.setRequestProperty("User-Agent", "Lynx/2.8.4rel.1");
             uc.connect();
-            BufferedReader inB = new BufferedReader(new InputStreamReader(uc.getInputStream()));
-            StringBuilder stringBuilder = new StringBuilder();
+            inB = new BufferedReader(new InputStreamReader(uc.getInputStream()));
+            stringBuilder.delete(0,stringBuilder.length());
             String tmp;
             while ((tmp = inB.readLine()) != null){
                 stringBuilder.append(tmp);
@@ -114,6 +114,11 @@ public class CrawlThread extends Thread {
         }
     }
 
+    /**
+     * Prints the Http-Exception received from the server
+     * @param e the exception
+     * @param base the crawled url
+     */
     private void handleException(Exception e, String base){
         String s = e.toString();
         if(s.contains("Server returned HTTP response code")){
@@ -121,7 +126,7 @@ public class CrawlThread extends Thread {
             int responseCode = Integer.parseInt(tmp[2].substring(1, 4));
             httpResponse = responseCode;
         }
-        System.out.println(s+base);
+        System.out.println(s+ " "+base);
     }
 
 
@@ -195,7 +200,7 @@ public class CrawlThread extends Thread {
                         iterator.add(s.substring(0,s.indexOf("?")));
                     }
                 }else{
-                    iterator.remove(); //TODO here
+                    iterator.remove(); //TODO here is a bug!!
                 }
             }else if(isSubDir(s)){
                 iterator.remove(); //TODO threw an IllegalStateException, test if it's better now
@@ -209,6 +214,7 @@ public class CrawlThread extends Thread {
      * checks whether a string ends with .html , .htm or /
      //TODO make a list of compatible files
      //TODO check whether html accepts things like http://reddit.com/index
+     //TODO https://www.youtube.com/user/adsf is valid :/
      * @param s the string to check
      * @return a boolean
      */
@@ -237,7 +243,7 @@ public class CrawlThread extends Thread {
      * @return a boolean
      */
     private boolean isSubDir(String s){
-        return s.startsWith("\\")||Character.isAlphabetic(s.charAt(0));
+        return s.startsWith("\\")||s.startsWith("..")||(Character.isAlphabetic(s.charAt(0))&&!s.startsWith("http://"));
     }
 
     /**
@@ -247,8 +253,8 @@ public class CrawlThread extends Thread {
      */
     private String toSubDirURL(String s){
         if(s.startsWith("\\"))
-            return URLBase + s.substring(1,s.length());
-        return URLBase + s;
+            return URLBase + '/' + s.substring(1,s.length());
+        return URLBase + '/' + s;
     }
 
     /**
@@ -268,7 +274,7 @@ public class CrawlThread extends Thread {
      */
     private static void printException(int id, Exception e, ArrayList<String> additionalData){
         if(additionalData!=null){
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder(id+": ");
             for(String s: additionalData) {
                 sb.append(s);
                 sb.append('\n');

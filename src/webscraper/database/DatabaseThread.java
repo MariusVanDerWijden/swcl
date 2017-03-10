@@ -1,4 +1,6 @@
-package webscraper;
+package webscraper.database;
+
+import webscraper.Webscraper;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -7,7 +9,7 @@ import java.util.Collection;
 /**
  * Created by matematik on 4/29/16.
  */
-public class DatabaseThread extends Thread {
+public class DatabaseThread extends Thread implements DatabaseConnector{
 
     private ArrayList<String> writeQueue; //a queue of strings to be written to the database
     private String databaseUrl; //a string representing the url to the database

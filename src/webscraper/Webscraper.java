@@ -1,7 +1,12 @@
 package webscraper;
 
+import webscraper.database.DatabaseConnector;
+import webscraper.database.PrintToConsole;
+
+import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -9,34 +14,42 @@ import java.util.List;
  */
 public class Webscraper {
 
+    private int HTTP_RESPONSE_OK = 200;
+
     private URL url; //the base url
     private static int MAX_THREAD = 6; //max crawling-threads
-    private DatabaseThread databaseThread; //a handle to the database thread
+    private DatabaseConnector databaseThread; //a handle to the database thread
     private CrawlThread[] threadPool; //an array of crawling-threads
     private boolean[] threadPoolBusy; //an array indicating whether a thread is busy
     private CheckUrlThread checkUrlThread; //a handle to the url-check-thread
     private Options options; //Options to be used
     private boolean saveToDir; //shall we save every Site?
+    private String dirToSaveTo; //if yes where do we save it to?
+    private int[] httpResponseCode = new int[1024];//counts how often which response is returned
 
-    private ArrayList<String> buffer = new ArrayList<>(30); //a buffer needed for asynchronous behavior
+    private LinkedList<String> buffer = new LinkedList<>(); //a buffer needed for asynchronous behavior
 
 
     /**
      * constructor for class webscraper, initializes and starts the crawling
-     * @param startURL the start url
      * @param option specifies the options
      */
-    public Webscraper(String startURL, Options option, String databaseURl) {
+    public Webscraper(CrawlerOptions option) {
         try {
-            url = new URL(startURL);
-            this.options = option;
-            init(option,databaseURl);
+            url = new URL(option.baseUrl);
+            this.options = option.opt;
+            init(option.opt,option.databasePath);
             threadPool[0].fetchThisSite(url);
             threadPoolBusy[0] = true;
+            databaseThread = new PrintToConsole(); //TODO change this to be dynamic
             run();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void init(){
+        //TODO hops, time, options, url, db
     }
 
     /**
@@ -105,7 +118,7 @@ public class Webscraper {
             threadPool[i].start();
         }
         //init CheckUrlThread
-        checkUrlThread = new CheckUrlThread(this);
+        checkUrlThread = new CheckUrlThread();
         checkUrlThread.start();
     }
 
@@ -120,9 +133,12 @@ public class Webscraper {
             }
             for(int i = 0; i < threadPoolBusy.length; i++){
                 if(!threadPoolBusy[i]){
-                    threadPoolBusy[i] = true;
-                    //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
-                    threadPool[i].fetchThisSite(checkUrlThread.getNewSite());
+                    URL s = checkUrlThread.getNewSite();
+                    if(s!=null) {
+                        threadPoolBusy[i] = true;
+                        //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
+                        threadPool[i].fetchThisSite(s);
+                    }
                 }
             }
             try{
@@ -136,25 +152,49 @@ public class Webscraper {
     }
 
     /**
+     * //TODO why do we have two methods here???
+     * //TODO call addToBuffer from SiteCrawled
      * shall be called from CrawlingThread, whenever a Site was crawled
      * param specifies the return code (HTTP Status code)
      * @param url The site which was crawled
      * @param data the data which was found under this url
      * @param threadId the id of the thread which crawled this site and is now happy to have more load
+     * @param foundUrls the urls found crawling this site
      */
-    public synchronized void siteCrawled(String url,String data, int threadId){
+    public synchronized void siteCrawled(
+            String url,String data, int threadId, int httpResponse, ArrayList<String> foundUrls){
+        if(httpResponse!=-1)
+            this.httpResponseCode[httpResponse]++;
+        addToBuffer(foundUrls,url);
         threadPoolBusy[threadId] = false;
-        if (saveToDir) {
-            if(data!=null) {
-                //TODO impl
-                //Save the data to a subdirectory
-            }
+        if (saveToDir && httpResponse == HTTP_RESPONSE_OK) {
+            saveToFile(data, url);
         }
         //TODO impl
     }
 
-    private void saveToFile(String data, String path){
+    private synchronized void saveToFile(String data, String path){
         //TODO impl, what to do with path -> save (maybe mkdir?)
+        if(data!=null) {
+            try {
+                String fileLocation = dirToSaveTo + url + path;
+                File file = new File(fileLocation);
+                if (file.exists()) {
+                    System.out.println("File already exists");
+                }
+                if (file.createNewFile()){
+                    if(file.canWrite()){
+                        if(file.mkdirs()){
+                            //TODO I have no idea what to do here :D
+                        }
+                    }
+                }
+                //TODO impl
+                //Save the data to a subdirectory
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -168,12 +208,13 @@ public class Webscraper {
      * Adds a list of strings to the buffer
      * @param list list of urls
      */
-    public synchronized void addToBuffer(List<String> list){
+    private synchronized void addToBuffer(List<String> list, String site){
         if(list==null)return;
-        buffer.addAll(list);
-        //TODO this I'm only for tests, delete me please
+        buffer.addAll(list); //TODO change
+        //TODO I'm only for tests, delete me please
         System.out.println("###############################################################################");
-        list.forEach(x->System.out.println(x));
+        System.out.println("Crawled Site: "+site);
+        list.forEach(x -> System.out.println(x));
     }
 
 

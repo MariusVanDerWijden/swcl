@@ -17,14 +17,11 @@ public class CheckUrlThread extends Thread {
     private LinkedList<URL> checkedURls; //list of checked urls
     private LinkedList<String> buffer; //a buffer to prevent concurrentModExceptions
     private ArrayList<String> sitesCrawled = new ArrayList<>(100); //a list of sites already crawled
-    private Webscraper webscraper; //a pointer to the webscraper TODO whats my purpose in life?
 
     /**
      * constructor for checkUrlThread
-     * @param webscraper a pointer to the webscraper
      */
-    public CheckUrlThread(Webscraper webscraper){
-        this.webscraper = webscraper;
+    public CheckUrlThread(){
         urlsToCheck = new LinkedList<>();
         checkedURls = new LinkedList<>();
         buffer = new LinkedList<>();
@@ -34,9 +31,10 @@ public class CheckUrlThread extends Thread {
      * Adds an list of urls to be checked and sets the isChecking flag
      * @param urls the urls to be checked
      */
-    public synchronized void addUrlToCheck(ArrayList<String> urls){
+    public synchronized void addUrlToCheck(LinkedList<String> urls){ //TODO currently uses one second O_o
         if(urls != null && urls.size() > 0) {
-            buffer.addAll(urls);
+            ArrayList<String>list = new ArrayList<>();
+            buffer.addAll(urls); //TODO fuck me this converts them all to an array
             isChecking = true;
         }
     }
@@ -47,8 +45,8 @@ public class CheckUrlThread extends Thread {
     public void run(){
         while (running){
             urlsToCheck.removeIf(x->sitesCrawled.contains(x));
-            if(buffer!=null)
-            urlsToCheck.addAll(buffer);
+            if(buffer!=null&&buffer.size()>0)
+                urlsToCheck.addAll(buffer); //converts list to array TODO find better method to do this
             Iterator<String>iterator = urlsToCheck.listIterator();
             while (iterator.hasNext()){
                 try {
@@ -57,6 +55,7 @@ public class CheckUrlThread extends Thread {
                         checkedURls.add(u);
                 }catch (MalformedURLException e){
                     System.out.println("MalformedUrl: " + e.toString());
+                    iterator.remove();
                     //TODO what to do with MalformedUrls?
                 }catch (Exception e){
                     e.printStackTrace();

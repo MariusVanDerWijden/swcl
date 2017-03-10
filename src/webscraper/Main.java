@@ -7,6 +7,11 @@ import java.lang.reflect.MalformedParametersException;
  */
 public class Main {
 
+    /*
+        Test:
+        TODO whats up with the urls? test me on a real site please :)
+     */
+
     public static void main(String[] args){
         //TODO use the String[] args to provide params for the crawler
         //TODO maybe put .js links in another db table
@@ -16,9 +21,16 @@ public class Main {
         //TODO whats with fucking ?params
         //TODO make the database optional
         //TODO check the load on each thread and find bottlenecks
-        Webscraper w = new Webscraper("http://www.web.de",Options.CRAWL_ALL_LINKS,"databaseUrl");
-        //TODO cleanup after yourself
+        //TODO what to do with httpresponsecode 429 (to much connections to the server)
+        //TODO maybe add an option to crawl a specific ip-range
+        CrawlerOptions opt = new CrawlerOptions();
+        opt.baseUrl = "http://www.treistudios.de";
+        opt.opt = Options.CRAWL_ALL_LINKS;
+        opt.databasePath = "";
+        Webscraper w = new Webscraper(opt);
 
+        //TODO cleanup after yourself
+        /*
         try {
             startWebCrawler(args);
         }catch (MalformedParametersException e){
@@ -26,6 +38,7 @@ public class Main {
         }catch (Exception e){
             e.printStackTrace();
         }
+        */
     }
 
     /**
@@ -36,32 +49,29 @@ public class Main {
      */
     private static void startWebCrawler(String[] args)throws MalformedParametersException{
         //ignore first arg (program name)
-        Options op = Options.CRAWL_ALL_LINKS;
-        int time = -1;
-        int hops = -1;
-        boolean useDatabase = false;
-        String databaseUrl;
-        for(int i = 1; i < args.length; i++){
+        CrawlerOptions options = new CrawlerOptions();
+        for(int i = 1; i < args.length -1; i++){
             switch(args[i]){
                 case "-o": //options
                     if(++i<args.length)throw new MalformedParametersException("-o");
-                    op = Options.valueOf(args[i]);
+                    options.opt = Options.valueOf(args[i]);
                     break;
                 case "-t": //time
                     if(++i<args.length)throw new MalformedParametersException("-t");
-                    time = Integer.valueOf(args[i]);
+                    options.maxTime = Integer.valueOf(args[i]);
                     break;
                 case "-h": //hops
                     if(++i<args.length)throw new MalformedParametersException("-h");
-                    hops = Integer.valueOf(args[i]);
+                    options.maxHops = Integer.valueOf(args[i]);
                     break;
                 case "-db": //database
                     if(++i<args.length)throw new MalformedParametersException("-db");
-                    databaseUrl = args[i];
-                    useDatabase = true;
+                    options.databasePath = args[i];
                 default: throw new MalformedParametersException("unknown parameter");
             }
         }
+        options.baseUrl = args[args.length-1];
+        new Webscraper(options);
     }
 
 }
