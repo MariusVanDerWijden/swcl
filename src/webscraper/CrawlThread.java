@@ -1,5 +1,8 @@
 package webscraper;
 
+import webscraper.list.LinkedListImp;
+import webscraper.list.ListObject;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -67,7 +70,7 @@ public class CrawlThread extends Thread {
     public void run(){
         while (running) {
             if (dataToFetchOrFetching){
-                ArrayList<String> foundUrls = null;
+                LinkedListImp<String> foundUrls = null;
                 String site = null;
                 this.httpResponse = -1;
                 try {
@@ -135,7 +138,7 @@ public class CrawlThread extends Thread {
      * @param s the string to extract from
      * @return a list of found strings looking like urls (have to be filtered later)
      */
-    private ArrayList<String> crawlStringForURLS(String s){
+    private LinkedListImp<String> crawlStringForURLS(String s){
         return extractHREF(s);
     }
 
@@ -145,7 +148,7 @@ public class CrawlThread extends Thread {
      * @param s The String to extract from
      * @return Returns an Array containing all valid uRLS
      */
-    private ArrayList<String> extractHREF(String s){
+    private LinkedListImp<String> extractHREF(String s){
         if(s==null)return null;
         ArrayList<String>extractedURls = new ArrayList<>(100);
         StringBuilder temp = new StringBuilder();
@@ -183,29 +186,29 @@ public class CrawlThread extends Thread {
     }
 
     /**
+     * //TODO benchmark this (conversion from arraylist to linkedlistimpl)
      * Filters a list of strings, and returns the ones being valid URLs or Sub-directories
-     * @param list the list to filter
+     * @param arrayList the list to filter
      * @return the filtered list
      */
-    private ArrayList<String> filterUrls(ArrayList<String> list){
-        ListIterator<String> iterator = list.listIterator();
+    private LinkedListImp<String> filterUrls(ArrayList<String> arrayList){
+        ListIterator<String> iterator = arrayList.listIterator();
+        LinkedListImp<String> list = new LinkedListImp<>();
         while (iterator.hasNext()){
             String s = iterator.next();
             if(!endsWithValidSeq(s)){
                 if(s.contains("?")){
-                    iterator.remove();
                     if(isSubDir(s)){
-                        iterator.add(toSubDirURL(s.substring(0,s.indexOf("?"))));
+                        list.add(toSubDirURL(s.substring(0,s.indexOf("?"))));
                     }else {
-                        iterator.add(s.substring(0,s.indexOf("?")));
+                        list.add(s.substring(0,s.indexOf("?")));
                     }
-                }else{
-                    iterator.remove(); //TODO here is a bug!!
-                }
+                }else
+                    continue;//TODO here is a bug
             }else if(isSubDir(s)){
-                iterator.remove(); //TODO threw an IllegalStateException, test if it's better now
-                iterator.add(toSubDirURL(s));
-            }
+                list.add(toSubDirURL(s));
+            }else
+                list.add(s);
         }
         return list;
     }
@@ -267,17 +270,19 @@ public class CrawlThread extends Thread {
     }
 
     /**
-     * Prints the Error and additional Data provided in a List
+     * Prints the Error and additional Data provided in a list
      * @param id the thread id
      * @param e the exception
      * @param additionalData an array containing additional Data
      */
-    private static void printException(int id, Exception e, ArrayList<String> additionalData){
+    private static void printException(int id, Exception e, LinkedListImp<String> additionalData){
         if(additionalData!=null){
             StringBuilder sb = new StringBuilder(id+": ");
-            for(String s: additionalData) {
-                sb.append(s);
+            ListObject<String> tmp = additionalData.getHead();
+            while(tmp!=null){
+                sb.append(tmp.data);
                 sb.append('\n');
+                tmp = tmp.nextObject;
             }
             printException(id,e,sb.toString());
         }else {

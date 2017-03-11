@@ -2,12 +2,11 @@ package webscraper;
 
 import webscraper.database.DatabaseConnector;
 import webscraper.database.PrintToConsole;
+import webscraper.list.LinkedListImp;
+import webscraper.list.ListObject;
 
 import java.io.File;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Created by matematik on 4/29/16.
@@ -27,7 +26,7 @@ public class Webscraper {
     private String dirToSaveTo; //if yes where do we save it to?
     private int[] httpResponseCode = new int[1024];//counts how often which response is returned
 
-    private LinkedList<String> buffer = new LinkedList<>(); //a buffer needed for asynchronous behavior
+    private LinkedListImp<String> buffer = new LinkedListImp<>(); //a buffer needed for asynchronous behavior
 
 
     /**
@@ -162,7 +161,7 @@ public class Webscraper {
      * @param foundUrls the urls found crawling this site
      */
     public synchronized void siteCrawled(
-            String url,String data, int threadId, int httpResponse, ArrayList<String> foundUrls){
+            String url,String data, int threadId, int httpResponse, LinkedListImp<String> foundUrls){
         if(httpResponse!=-1)
             this.httpResponseCode[httpResponse]++;
         addToBuffer(foundUrls,url);
@@ -170,7 +169,6 @@ public class Webscraper {
         if (saveToDir && httpResponse == HTTP_RESPONSE_OK) {
             saveToFile(data, url);
         }
-        //TODO impl
     }
 
     private synchronized void saveToFile(String data, String path){
@@ -208,13 +206,17 @@ public class Webscraper {
      * Adds a list of strings to the buffer
      * @param list list of urls
      */
-    private synchronized void addToBuffer(List<String> list, String site){
+    private synchronized void addToBuffer(LinkedListImp<String> list, String site){
         if(list==null)return;
-        buffer.addAll(list); //TODO change
+        buffer.addAll(list);
         //TODO I'm only for tests, delete me please
         System.out.println("###############################################################################");
         System.out.println("Crawled Site: "+site);
-        list.forEach(x -> System.out.println(x));
+        ListObject<String> tmp  = list.getHead();
+        while (tmp != null){
+            System.out.println(tmp.data);
+            tmp = tmp.nextObject;
+        }
     }
 
 
