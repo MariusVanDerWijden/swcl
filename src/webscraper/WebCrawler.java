@@ -11,7 +11,7 @@ import java.net.URL;
 /**
  * Created by matematik on 4/29/16.
  */
-public class Webscraper {
+public class WebCrawler {
 
     private int HTTP_RESPONSE_OK = 200;
 
@@ -21,9 +21,7 @@ public class Webscraper {
     private CrawlThread[] threadPool; //an array of crawling-threads
     private boolean[] threadPoolBusy; //an array indicating whether a thread is busy
     private CheckUrlThread checkUrlThread; //a handle to the url-check-thread
-    private Options options; //Options to be used
-    private boolean saveToDir; //shall we save every Site?
-    private String dirToSaveTo; //if yes where do we save it to?
+    private CrawlerOptions options; //Options to be used
     private int[] httpResponseCode = new int[1024];//counts how often which response is returned
 
     private LinkedListImp<String> buffer = new LinkedListImp<>(); //a buffer needed for asynchronous behavior
@@ -33,10 +31,10 @@ public class Webscraper {
      * constructor for class webscraper, initializes and starts the crawling
      * @param option specifies the options
      */
-    public Webscraper(CrawlerOptions option) {
+    public WebCrawler(CrawlerOptions option) {
         try {
             url = new URL(option.baseUrl);
-            this.options = option.opt;
+            this.options = option;
             init(option.opt,option.databasePath);
             threadPool[0].fetchThisSite(url);
             threadPoolBusy[0] = true;
@@ -50,6 +48,127 @@ public class Webscraper {
     private void init(){
         //TODO hops, time, options, url, db
     }
+
+    /**
+     * Initializes the whole thing
+     * @param option specifies which crawling scheme shall be used
+     * @throws Exception
+     */
+    private void init(CrawlerOptions.Options option,String databaseUrl) throws Exception {
+        //init db thread
+        if(databaseUrl != null) {
+            //databaseThread = new MySqlDatabase(this,databaseUrl);
+            //databseThread.start(); //TODO figure this
+        }
+        //init scrapethreads (in threadpool)
+        threadPool = new CrawlThread[MAX_THREAD];
+        threadPoolBusy = new boolean[MAX_THREAD];
+        SaveThread saveThread = null;
+        if(options.saveDirectory != null)
+            saveThread = new SaveThread(options,url.toString());
+        for (int i = 0; i < threadPool.length; i++){
+            threadPoolBusy[i] = false;
+            threadPool[i] = new CrawlThread(i,this, saveThread);
+            threadPool[i].start();
+        }
+        //init CheckUrlThread
+        checkUrlThread = new CheckUrlThread();
+        checkUrlThread.start();
+    }
+
+
+
+    /**
+     * main routine
+     * checks whether a thread is busy and gives them a new URL
+     */
+    private void run(){
+        while (true){
+            if(!buffer.isEmpty()){
+                flushBuffer();
+            }
+            for(int i = 0; i < threadPoolBusy.length; i++){
+                if(!threadPoolBusy[i]){
+                    URL s = checkUrlThread.getNewSite();
+                    if(s != null) {
+                        if(threadPool[i].fetchThisSite(s))
+                            threadPoolBusy[i] = true;
+                    }else {
+                        //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
+                    }
+                }
+            }
+            try{
+                Thread.sleep(10);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            //maybe check every ten seconds if all threads are busy
+            //TODO check if recursion is finished or poll for user input
+        }
+    }
+
+    /**
+     * //TODO why do we have two methods here???
+     * //TODO call addToBuffer from SiteCrawled
+     * shall be called from CrawlingThread, whenever a Site was crawled
+     * param specifies the return code (HTTP Status code)
+     * returns immediately if no urls were found
+     * @param url The site which was crawled
+     * @param threadId the id of the thread which crawled this site and is now happy to have more load
+     * @param foundUrls the urls found crawling this site
+     */
+    public synchronized void siteCrawled(
+            String url, int threadId, int httpResponse, LinkedListImp<String> foundUrls){
+        if(httpResponse!=-1)
+            this.httpResponseCode[httpResponse]++;
+        threadPoolBusy[threadId] = false;
+        if(foundUrls == null) return;
+        addToBuffer(foundUrls,url);
+    }
+
+    /**
+     * Flashes the buffer to the MySqlDatabase
+     */
+    private void flushBuffer(){
+        checkUrlThread.addUrlToCheck(buffer);
+        buffer.clear();
+    }
+
+    /**
+     * Adds a list of strings to the buffer
+     * @param list list of urls
+     */
+    private synchronized void addToBuffer(LinkedListImp<String> list, String site){
+        if(list == null)return;
+        buffer.addAll(list);
+        //TODO I'm only for tests, delete me please
+        System.out.println("###############################################################################");
+        System.out.println("Crawled Site: "+site);
+        ListObject<String> tmp  = list.getHead();
+        while (tmp != null){
+            System.out.println(tmp.data);
+            tmp = tmp.nextObject;
+        }
+    }
+
+
+    /**
+     * Writes a string to the database
+     * @deprecated is currently synchronous shall be asynchronous
+     * @param s the string to be written
+     * @return returns a boolean whether the operation was successful
+     */
+    private boolean writeToDatabase(String s){
+        boolean b = false;
+        try {
+            b = databaseThread.writeToDatabase(s);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return b;
+    }
+
 
     /**
      * Stops all CrawlingThreads
@@ -95,144 +214,4 @@ public class Webscraper {
         }
     }
 
-    /**
-     * Initializes the whole thing
-     * @param option specifies which crawling scheme shall be used
-     * @throws Exception
-     */
-    private void init(Options option,String databaseUrl) throws Exception {
-        //init db thread
-        saveToDir = options == Options.CRAWL_DICTIONARY_AND_SAVE_TO_DIR
-                || options == Options.CRAWL_SUB_SITES_AND_SAVE_TO_DIR;
-        if(databaseUrl!=null) {
-            //databaseThread = new DatabaseThread(this,databaseUrl);
-            //databseThread.start();
-        }
-        //init scrapethreads (in threadpool)
-        threadPool = new CrawlThread[MAX_THREAD];
-        threadPoolBusy = new boolean[MAX_THREAD];
-        for (int i = 0; i < threadPool.length; i++){
-            threadPoolBusy[i] = false;
-            threadPool[i] = new CrawlThread(i,this);
-            threadPool[i].start();
-        }
-        //init CheckUrlThread
-        checkUrlThread = new CheckUrlThread();
-        checkUrlThread.start();
-    }
-
-    /**
-     * main routine
-     * checks whether a thread is busy and gives them a new URL
-     */
-    private void run(){
-        while (true){
-            if(!buffer.isEmpty()){
-                flushBuffer();
-            }
-            for(int i = 0; i < threadPoolBusy.length; i++){
-                if(!threadPoolBusy[i]){
-                    URL s = checkUrlThread.getNewSite();
-                    if(s!=null) {
-                        threadPoolBusy[i] = true;
-                        //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
-                        threadPool[i].fetchThisSite(s);
-                    }
-                }
-            }
-            try{
-                Thread.sleep(10);
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-            //maybe check every ten seconds if all threads are busy
-            //TODO check if recursion is finished or poll for user input
-        }
-    }
-
-    /**
-     * //TODO why do we have two methods here???
-     * //TODO call addToBuffer from SiteCrawled
-     * shall be called from CrawlingThread, whenever a Site was crawled
-     * param specifies the return code (HTTP Status code)
-     * @param url The site which was crawled
-     * @param data the data which was found under this url
-     * @param threadId the id of the thread which crawled this site and is now happy to have more load
-     * @param foundUrls the urls found crawling this site
-     */
-    public synchronized void siteCrawled(
-            String url,String data, int threadId, int httpResponse, LinkedListImp<String> foundUrls){
-        if(httpResponse!=-1)
-            this.httpResponseCode[httpResponse]++;
-        addToBuffer(foundUrls,url);
-        threadPoolBusy[threadId] = false;
-        if (saveToDir && httpResponse == HTTP_RESPONSE_OK) {
-            saveToFile(data, url);
-        }
-    }
-
-    private synchronized void saveToFile(String data, String path){
-        //TODO impl, what to do with path -> save (maybe mkdir?)
-        if(data!=null) {
-            try {
-                String fileLocation = dirToSaveTo + url + path;
-                File file = new File(fileLocation);
-                if (file.exists()) {
-                    System.out.println("File already exists");
-                }
-                if (file.createNewFile()){
-                    if(file.canWrite()){
-                        if(file.mkdirs()){
-                            //TODO I have no idea what to do here :D
-                        }
-                    }
-                }
-                //TODO impl
-                //Save the data to a subdirectory
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * Flashes the buffer to the DatabaseThread
-     */
-    private void flushBuffer(){
-        checkUrlThread.addUrlToCheck(buffer);
-    }
-
-    /**
-     * Adds a list of strings to the buffer
-     * @param list list of urls
-     */
-    private synchronized void addToBuffer(LinkedListImp<String> list, String site){
-        if(list==null)return;
-        buffer.addAll(list);
-        //TODO I'm only for tests, delete me please
-        System.out.println("###############################################################################");
-        System.out.println("Crawled Site: "+site);
-        ListObject<String> tmp  = list.getHead();
-        while (tmp != null){
-            System.out.println(tmp.data);
-            tmp = tmp.nextObject;
-        }
-    }
-
-
-    /**
-     * Writes a string to the database
-     * @deprecated is currently synchronous shall be asynchronous
-     * @param s the string to be written
-     * @return returns a boolean whether the operation was successful
-     */
-    private boolean writeToDatabase(String s){
-        boolean b = false;
-        try {
-            b = databaseThread.writeToDatabase(s);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return b;
-    }
 }

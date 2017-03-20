@@ -15,40 +15,42 @@ import java.util.ListIterator;
  */
 public class CrawlThread extends Thread {
 
-    //TODO impl!
     private URL url; //reddit.com/asdf/index.html
     private String URLBase; //reddit.com/asdf
     private int httpResponse; //httpResponseCode
-    private Webscraper mainThread; //a pointer to the main thread
+    private WebCrawler mainThread; //a pointer to the main thread
     private int id; //unique Identifier for this thread
     private boolean dataToFetchOrFetching; //states whether the thread is currently fetching a site
     private boolean running = true; //controls whether the thread shall be running
     private URLConnection uc;
     private BufferedReader inB;
     private StringBuilder stringBuilder = new StringBuilder();
+    private SaveThread saveThread;
+    private boolean save = false;
 
     /**
      * constructor for crawl thread
      * @param id an artificial id to name this thread
      * @param mainThread a pointer to the main thread
-     * @throws Exception
      */
-    public CrawlThread(int id, Webscraper mainThread) throws Exception{
+    public CrawlThread(int id, WebCrawler mainThread, SaveThread saveThread){
         this.mainThread = mainThread;
+        this.saveThread = saveThread;
+        save = saveThread != null;
         this.id = id;
         this.setName("CrawlThread"+id);
     }
 
     /**
      * Fetches the contents of this URl
-     * Shall be called from the Webscraper main thread
+     * Shall be called from the WebCrawler main thread
      * and adds the found urls to the database
      * @param u The url to be fetched
      */
-    public synchronized void fetchThisSite(URL u){
+    public synchronized boolean fetchThisSite(URL u){
         if(u==null) {
-            dataToFetchOrFetching = false;
-            return;
+            dataToFetchOrFetching = false; //TODO thread has to notify MainThread, that the URL is broken
+            return false;
         }
         this.url = u;
         try {
@@ -56,11 +58,14 @@ public class CrawlThread extends Thread {
         }catch (Exception e){
             System.out.println("ERROR WHILE GETTING THE PROTOCOL: "+u.toString());
             e.printStackTrace();
+            return false;
         }
         if(dataToFetchOrFetching){
             printException(id,new Exception("Thread is still fetching Data"),"Url: "+u.toString());
+            return false;
         }else{
             dataToFetchOrFetching = true;
+            return true;
         }
     }
 
@@ -75,11 +80,14 @@ public class CrawlThread extends Thread {
                 this.httpResponse = -1;
                 try {
                     site = fetchURL(url);
-                    foundUrls = crawlStringForURLS(site);
+                    foundUrls = (httpResponse == 200) ? crawlStringForURLS(site) : null;
                 } catch (Exception e) {
                     printException(id, e, foundUrls);
                 } finally {
-                    mainThread.siteCrawled(url.toString(),site,id,httpResponse,foundUrls);
+                    String path = url.toString();
+                    mainThread.siteCrawled(path,id,httpResponse,foundUrls);
+                    if(save && httpResponse == 200)
+                        saveThread.addFile(site,url.toString());
                     dataToFetchOrFetching = false;
                 }
             }
@@ -126,8 +134,7 @@ public class CrawlThread extends Thread {
         String s = e.toString();
         if(s.contains("Server returned HTTP response code")){
             String tmp[] = s.split("[:]");
-            int responseCode = Integer.parseInt(tmp[2].substring(1, 4));
-            httpResponse = responseCode;
+            httpResponse = Integer.parseInt(tmp[2].substring(1, 4));
         }
         System.out.println(s+ " "+base);
     }
@@ -204,7 +211,7 @@ public class CrawlThread extends Thread {
                         list.add(s.substring(0,s.indexOf("?")));
                     }
                 }else
-                    continue;//TODO here is a bug
+                    continue;//TODO here is a bug (probably)
             }else if(isSubDir(s)){
                 list.add(toSubDirURL(s));
             }else

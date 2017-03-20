@@ -9,21 +9,38 @@ public class LinkedListImp <T>{
     private ListObject<T> tail;
     private int count;
 
+    //TODO add an Iterator implementation;
+    //for(T elem: linkedListImp)
+
     public LinkedListImp(){
         count = 0;
     }
 
+    /**
+     * Initializes the List with one element
+     * @param elem
+     */
     public LinkedListImp(T elem){
         head = new ListObject<T>(elem);
         tail = head;
         count = 1;
     }
 
+    /**
+     * Adds an element to the end of the list
+     * @param elem
+     */
     public void add(T elem){
-        ListObject<T> tmp = tail;
-        tail = new ListObject<T>(elem);
-        tmp.nextObject = tail;
-        tail.prevObject = tmp;
+        if(elem == null)return;
+        if(tail != null) {
+            ListObject<T> tmp = tail;
+            tail = new ListObject<T>(elem);
+            tmp.nextObject = tail;
+            tail.prevObject = tmp;
+        }else{
+            tail = new ListObject<T>(elem);
+            head = tail;
+        }
         count++;
     }
 
@@ -32,19 +49,36 @@ public class LinkedListImp <T>{
      * @param list
      */
     public void addAll(LinkedListImp<T> list){
-        ListObject<T> tmp = tail;
-        tail = list.head;
-        tmp.nextObject = tail;
-        tail.prevObject = tmp;
-        count += list.size();
+        if(list.isEmpty())return;
+        if(tail != null) {
+            ListObject<T> tmp = tail;
+            tail = list.head;
+            tmp.nextObject = tail;
+            tail.prevObject = tmp;
+            count += list.size();
+        }else if(head == null) {
+            head = list.head;
+            tail = list.tail;
+            count = list.count;
+        }else {
+            System.err.println("ERROR in LinkedListImp::addAll should not be legal");
+        }
     }
 
+    /**
+     * Pops the first element of the list
+     * @return
+     */
     public T pop(){
-        if(head == null)return null;
+        count -= 1;
+        if(head == null){
+            count = 0;
+            return null;
+        }
         T tmp = head.data;
         head = head.nextObject;
-        head.prevObject = null;
-        count -= 1;
+        if(head == null)
+            count = 0;
         return tmp;
     }
 
@@ -53,8 +87,9 @@ public class LinkedListImp <T>{
     }
 
     /**
+     * Removes all Elements equaling this element
      * Really expensive operation
-     * Do not use
+     * Should only be used if really necessary
      * @return returns the number of removed Elements
      */
     public int remove(T elem){
@@ -73,18 +108,29 @@ public class LinkedListImp <T>{
         return cnt;
     }
 
+    /**
+     * returns the size of the list
+     * @return
+     */
     public int size(){
         return count;
     }
 
+    /**
+     * clears the content of the list
+     */
     public void clear(){
         count = 0;
         head = null;
         tail = null;
     }
 
+    /**
+     * returns true if the list is empty
+     * @return
+     */
     public boolean isEmpty(){
-        return count == 0;
+        return head == null;
     }
 
 }

@@ -8,5 +8,24 @@ public class CrawlerOptions {
     Options opt = Options.CRAWL_ALL_LINKS;
     int maxHops = -1;
     int maxTime = -1;
-    String databasePath = "";
+    String databasePath = null;
+    String saveDirectory = null; //If not null, we save the content of every crawled site to this directory
+
+    public String toString(){
+        String s = "BaseUrl: "+baseUrl;
+        s += " Option: "+opt.toString();
+        s += " MaxHops: "+maxHops;
+        s += " MaxTime: "+maxTime;
+        s += " DatabasePath: "+databasePath;
+        s += " SaveDirectory: "+saveDirectory;
+        return s;
+    }
+
+    public enum Options{
+
+        //Options for the crawler
+        CRAWL_SUB_SITES, //crawls only sub_sites of the main site
+        CRAWL_ALL_LINKS, //crawls everything
+        CRAWL_DICITIONARY, //probes subdirectories based on a given dictionary
+    }
 }

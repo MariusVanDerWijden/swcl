@@ -12,8 +12,6 @@ import java.util.LinkedList;
  */
 public class CheckUrlThread extends Thread {
 
-    //TODO currently returns already crawled Sites
-
     private boolean running = true; //checks whether the thread shall be running
     private boolean isChecking = false; //is this thread currently checking a url?
     private LinkedListImp<String> urlsToCheck; //list of urls to be checked
@@ -46,17 +44,20 @@ public class CheckUrlThread extends Thread {
      */
     public void run(){
         while (running){
-            if(buffer!=null&&buffer.size()>0)
+            if(buffer!=null&&buffer.size()>0) {
                 urlsToCheck.addAll(buffer); //TODO benchmark this
+                buffer.clear();
+            }
             while (urlsToCheck.size()>0){
+                String tmpSite = urlsToCheck.pop();
+                if(tmpSite == null)continue;
+                if(sitesCrawled.contains(tmpSite))continue;
                 try {
-                    String tmpSite = urlsToCheck.pop();
-                    if(sitesCrawled.contains(tmpSite))continue;
-                    URL u = new URL(tmpSite);//TODO currently throws ConcurrentModificationException
+                    URL u = new URL(tmpSite);//TODO currently throws ConcurrentModificationException?
                     if(!checkedURls.contains(u))
                         checkedURls.add(u);
                 }catch (MalformedURLException e){
-                    System.out.println("MalformedUrl: " + e.toString());
+                    System.out.println("MalformedUrl: " + tmpSite);
                     //TODO what to do with MalformedUrls?
                 }catch (Exception e){
                     e.printStackTrace();
@@ -74,11 +75,10 @@ public class CheckUrlThread extends Thread {
      * returns a new site to be crawled and adds it to the already crawled sites
      * @return site to be crawled
      */
-    public URL getNewSite(){
+    public synchronized URL getNewSite(){
         if(checkedURls.peek()!=null) {
             URL u = checkedURls.pop();
-            if (u != null)
-                sitesCrawled.add(u.toString());
+            sitesCrawled.add(u.toString());
             return u;
         }
         return null;

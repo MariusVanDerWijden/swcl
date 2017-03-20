@@ -1,6 +1,6 @@
 package webscraper.database;
 
-import webscraper.Webscraper;
+import webscraper.WebCrawler;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -9,18 +9,18 @@ import java.util.Collection;
 /**
  * Created by matematik on 4/29/16.
  */
-public class DatabaseThread extends Thread implements DatabaseConnector{
+public class MySqlDatabase extends DatabaseConnector{
 
     private ArrayList<String> writeQueue; //a queue of strings to be written to the database
     private String databaseUrl; //a string representing the url to the database
-    private Webscraper webscraper; //a pointer to the webscraper
+    private WebCrawler webCrawler; //a pointer to the webCrawler
 
     private PreparedStatement prepState; //TODO use preparedStatements
 
-    public DatabaseThread(Webscraper webscraper, String databaseUrl)throws Exception{
-        this.setName("DatabaseThread");
+    public MySqlDatabase(WebCrawler webCrawler, String databaseUrl)throws Exception{
+        this.setName("MySqlDatabase");
         this.databaseUrl  = databaseUrl;
-        this.webscraper = webscraper;
+        this.webCrawler = webCrawler;
         writeQueue = new ArrayList<>(300);
         init();
     }
@@ -51,7 +51,7 @@ public class DatabaseThread extends Thread implements DatabaseConnector{
      * @return a boolean indicating success/failure
      * @throws Exception may throw database exception
      */
-    public boolean writeToDatabase(Collection<? extends String> list) throws Exception{
+    public boolean writeToDatabase(Collection<String> list) throws Exception{
         //throw new Exception("DatabaseError: "+list.toString());
         for(String s:list){
            if(!writeToDatabase(s)) {

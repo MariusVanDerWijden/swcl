@@ -1,10 +1,14 @@
 package test;
 
+import webscraper.list.LinkedListImp;
+import webscraper.list.ListObject;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 /**
  * Created by matematik on 5/26/16.
@@ -12,34 +16,88 @@ import java.util.ArrayList;
 public class TestPerformance {
 
     public static void main(String[] args){
-        StringBuilder file = new StringBuilder();
-        try{
-            FileReader fr = new FileReader(new File("asdf.html"));
-            int i;
-            while(-1!=(i = fr.read()))
-                file.append((char)i);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        String site = file.toString();
-                //"asfdkakksdkmailto = \"dsf@adf.cz\"kdfkakdsfhhref=\"adsfasdfadfsadsf\"hrehref=\"adsfasdfadfsadsf\"href=\"\"";
+        testAddAll();
+    }
+
+
+    private static void testLinkedListImp(){
+
+    }
+
+    private static void testAdd(){
+        int z = 1000000;
+        long l1 = System.nanoTime();
+        LinkedList<String> list = generateLinkedList(z);
+        long l2 = System.nanoTime();
         long l3 = System.nanoTime();
-        ArrayList<String> list2 = extractHREF2(site);
+        LinkedListImp<String> list2 = generateLinkedListImp(z);
         long l4 = System.nanoTime();
-        System.out.println("extract2 :" + (l4-l3)+"size: "+list2.size());
-        list2.forEach(x->System.out.println(x));
-        extractMailto(site).forEach(x->System.out.println(x));
-        checkEndWith(list2);
-        checkStartsWithBetter(list2);
-        try {
-            long l1 = System.currentTimeMillis();
-            String s = fetchURL(new URL("http://www.web.de"));
-            long l2 = System.currentTimeMillis();
-            System.out.println(s);
-            System.out.println("fetchUrl :" + (l2-l1)+"size: "+s.length());
-        }catch (Exception e){
-            e.printStackTrace();
+        boolean equal = (list.size() == list2.size());
+        System.out.println(equal);
+        /*
+        for(int i = 0; i < list.size(); i++)
+        {
+            String s = list.get(i);
+            String q = list2.pop();
+            equal = equal && s.equals(q);
+            if(!equal) {
+                System.out.println(s + " " + q + " " + i);
+                break;
+            }
+
         }
+        */
+        System.out.println("Same: "+ equal + " \n LinkedList:\t" + (l2-l1) + "\nLinkedListImp:\t" + (l4-l3));
+    }
+
+    private static void testAddAll(){
+        int z = 1000000;
+        LinkedListImp<String> list2 = generateLinkedListImp(z);
+        LinkedListImp<String> list3 = generateLinkedListImp(z);
+        long l3 = System.nanoTime();
+        list2.addAll(list3);
+        long l4 = System.nanoTime();
+        LinkedList<String> list = generateLinkedList(z);
+        LinkedList<String> list1 = generateLinkedList(z);
+        long l1 = System.nanoTime();
+        list.addAll(list1);
+        long l2 = System.nanoTime();
+
+        boolean equal = (list.size() == list2.size());
+        System.out.println(equal +" " +list2.size());
+        /*
+        for(int i = 0; i < list.size(); i++)
+        {
+            String s = list.get(i);
+            String q = list2.pop();
+            equal = equal && s.equals(q);
+            if(!equal) {
+                System.out.println(s + " " + q + " " + i);
+                break;
+            }
+
+        }
+        */
+        System.out.println("Same: "+ equal + " \n LinkedList:\t" + (l2-l1)/1000 + "\nLinkedListImp:\t" + (l4-l3)/1000);
+    }
+
+
+    private static LinkedList<String> generateLinkedList(int z){
+        LinkedList<String> ret = new LinkedList<>();
+        for(int i = 0; i < z; i++)
+        {
+            ret.add("asdf"+i);
+        }
+        return ret;
+    }
+
+    private static LinkedListImp<String> generateLinkedListImp(int z){
+        LinkedListImp<String> ret = new LinkedListImp<>();
+        for(int i = 0; i < z; i++)
+        {
+            ret.add("asdf"+i);
+        }
+        return ret;
     }
 
     private static ArrayList<String> extractHREF2(String s){
@@ -77,6 +135,37 @@ public class TestPerformance {
             e.printStackTrace();
         }
         return extractedURls;
+    }
+
+    private static void testHREF(){
+        StringBuilder file = new StringBuilder();
+        try{
+            FileReader fr = new FileReader(new File("asdf.html"));
+            int i;
+            while(-1!=(i = fr.read()))
+                file.append((char)i);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        String site = file.toString();
+        //"asfdkakksdkmailto = \"dsf@adf.cz\"kdfkakdsfhhref=\"adsfasdfadfsadsf\"hrehref=\"adsfasdfadfsadsf\"href=\"\"";
+        long l3 = System.nanoTime();
+        ArrayList<String> list2 = extractHREF2(site);
+        long l4 = System.nanoTime();
+        System.out.println("extract2 :" + (l4-l3)+"size: "+list2.size());
+        list2.forEach(x->System.out.println(x));
+        extractMailto(site).forEach(x->System.out.println(x));
+        checkEndWith(list2);
+        checkStartsWithBetter(list2);
+        try {
+            long l1 = System.currentTimeMillis();
+            String s = fetchURL(new URL("http://www.web.de"));
+            long l2 = System.currentTimeMillis();
+            System.out.println(s);
+            System.out.println("fetchUrl :" + (l2-l1)+"size: "+s.length());
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     private static ArrayList<String> extractMailto(String s){
