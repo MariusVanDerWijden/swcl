@@ -1,7 +1,6 @@
 package test;
 
 import webscraper.list.LinkedListImp;
-import webscraper.list.ListObject;
 
 import java.io.BufferedInputStream;
 import java.io.File;

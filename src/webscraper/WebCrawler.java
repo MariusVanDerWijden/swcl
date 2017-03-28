@@ -5,7 +5,6 @@ import webscraper.database.PrintToConsole;
 import webscraper.list.LinkedListImp;
 import webscraper.list.ListObject;
 
-import java.io.File;
 import java.net.URL;
 
 /**
@@ -14,6 +13,9 @@ import java.net.URL;
 public class WebCrawler {
 
     private int HTTP_RESPONSE_OK = 200;
+    private int DEFAULT_TIMEOUT_COUNTER = 1000;
+
+    private int timeoutCounter = 0;
 
     private URL url; //the base url
     private static int MAX_THREAD = 6; //max crawling-threads
@@ -32,21 +34,20 @@ public class WebCrawler {
      * @param option specifies the options
      */
     public WebCrawler(CrawlerOptions option) {
+        timeoutCounter = DEFAULT_TIMEOUT_COUNTER;
         try {
             url = new URL(option.baseUrl);
             this.options = option;
             init(option.opt,option.databasePath);
-            threadPool[0].fetchThisSite(url);
-            threadPoolBusy[0] = true;
+            if(threadPool[0].fetchThisSite(url))
+                threadPoolBusy[0] = true;
+            else
+                throw new Exception("Couldn't start Thread 0");
             databaseThread = new PrintToConsole(); //TODO change this to be dynamic
             run();
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void init(){
-        //TODO hops, time, options, url, db
     }
 
     /**
@@ -55,6 +56,7 @@ public class WebCrawler {
      * @throws Exception
      */
     private void init(CrawlerOptions.Options option,String databaseUrl) throws Exception {
+        //TODO hops, time, options, url, db
         //init db thread
         if(databaseUrl != null) {
             //databaseThread = new MySqlDatabase(this,databaseUrl);
@@ -64,13 +66,16 @@ public class WebCrawler {
         threadPool = new CrawlThread[MAX_THREAD];
         threadPoolBusy = new boolean[MAX_THREAD];
         SaveThread saveThread = null;
-        if(options.saveDirectory != null)
-            saveThread = new SaveThread(options,url.toString());
+
+        if(options.saveDirectory != null) {
+            saveThread = new SaveThread(options, url.toString());
+            saveThread.start();
+        }
         for (int i = 0; i < threadPool.length; i++){
             threadPoolBusy[i] = false;
             threadPool[i] = new CrawlThread(i,this, saveThread);
-            threadPool[i].start();
         }
+        startThreads();
         //init CheckUrlThread
         checkUrlThread = new CheckUrlThread();
         checkUrlThread.start();
@@ -91,9 +96,14 @@ public class WebCrawler {
                 if(!threadPoolBusy[i]){
                     URL s = checkUrlThread.getNewSite();
                     if(s != null) {
+                        timeoutCounter = DEFAULT_TIMEOUT_COUNTER;
                         if(threadPool[i].fetchThisSite(s))
                             threadPoolBusy[i] = true;
                     }else {
+                        if(timeoutCounter-- == 0)
+                        {
+                            stopCrawler();
+                        }
                         //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
                     }
                 }
@@ -109,8 +119,6 @@ public class WebCrawler {
     }
 
     /**
-     * //TODO why do we have two methods here???
-     * //TODO call addToBuffer from SiteCrawled
      * shall be called from CrawlingThread, whenever a Site was crawled
      * param specifies the return code (HTTP Status code)
      * returns immediately if no urls were found
@@ -144,7 +152,7 @@ public class WebCrawler {
         buffer.addAll(list);
         //TODO I'm only for tests, delete me please
         System.out.println("###############################################################################");
-        System.out.println("Crawled Site: "+site);
+        System.out.println("Crawled Site: "+site+ " Link-count: "+list.size());
         ListObject<String> tmp  = list.getHead();
         while (tmp != null){
             System.out.println(tmp.data);
@@ -169,13 +177,27 @@ public class WebCrawler {
         return b;
     }
 
+    /**
+     * Stops the Web-crawler
+     * TODO impl + test
+     */
+    private void stopCrawler(){
+        try{
+            stopAllCrawlingThreads();
+            stopCheckUrlThread();
+            stopDatabaseThread();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
 
     /**
      * Stops all CrawlingThreads
      * @throws InterruptedException
      */
-    public void stopAllCrawlingThreads() throws Exception{
-        int i = threadPool.length;
+    private void stopAllCrawlingThreads() throws Exception{
+        int i = threadPool.length-1;
         while (i > 0) {
             if (threadPool[i].stopThread()){
                 i--;
@@ -189,7 +211,7 @@ public class WebCrawler {
      * Stops the databaseThread
      * @throws Exception
      */
-    public void stopDatabaseThread()throws Exception{
+    private void stopDatabaseThread()throws Exception{  //TODO do this for saveThread too
         while (databaseThread.stopThread()){
             Thread.sleep(100);
         }
@@ -199,7 +221,7 @@ public class WebCrawler {
      * Stops the CheckUrlThread
      * @throws Exception
      */
-    public void stopCheckUrlThread()throws Exception{
+    private void stopCheckUrlThread()throws Exception{
         while (checkUrlThread.stopThread()){
             Thread.sleep(100);
         }

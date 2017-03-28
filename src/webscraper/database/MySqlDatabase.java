@@ -17,6 +17,7 @@ public class MySqlDatabase extends DatabaseConnector{
 
     private PreparedStatement prepState; //TODO use preparedStatements
 
+
     public MySqlDatabase(WebCrawler webCrawler, String databaseUrl)throws Exception{
         this.setName("MySqlDatabase");
         this.databaseUrl  = databaseUrl;
@@ -42,23 +43,6 @@ public class MySqlDatabase extends DatabaseConnector{
     public boolean writeToDatabase(String s) throws Exception{
         throw new Exception("DatabaseError: "+s);
         //TODO impl
-        //return false;
-    }
-
-    /**
-     * writes the list of strings to the database
-     * @param list list of strings
-     * @return a boolean indicating success/failure
-     * @throws Exception may throw database exception
-     */
-    public boolean writeToDatabase(Collection<String> list) throws Exception{
-        //throw new Exception("DatabaseError: "+list.toString());
-        for(String s:list){
-           if(!writeToDatabase(s)) {
-               //TODO what happens here?
-           }
-        }
-        return false; //TODO impl
     }
 
     /**

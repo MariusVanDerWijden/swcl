@@ -30,6 +30,10 @@ public class SaveThread extends Thread{
             //TODO take every entry and save it
             saveToFile(sites.pop());
             sites.clear();
+        }try{
+            Thread.sleep(100);
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 
