@@ -22,7 +22,7 @@ public class Main {
         //TODO whats with fucking ?params
         //TODO make the database optional
         //TODO check the load on each thread and find bottlenecks
-        //TODO what to do with httpresponsecode 429 (to much connections to the server)
+        //TODO what to do with httpresponsecode 429 (to many connections to the server)
         //TODO maybe add an option to crawl a specific ip-range
         /*
         CrawlerOptions opt = new CrawlerOptions();

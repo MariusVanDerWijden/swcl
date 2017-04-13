@@ -1,6 +1,7 @@
 package webscraper;
 
 import webscraper.database.DatabaseConnector;
+import webscraper.database.MySqlDatabase;
 import webscraper.database.PrintToConsole;
 import webscraper.list.LinkedListImp;
 import webscraper.list.ListObject;
@@ -25,10 +26,10 @@ public class WebCrawler {
     private CheckUrlThread checkUrlThread; //a handle to the url-check-thread
     private CrawlerOptions options; //Options to be used
     private int[] httpResponseCode = new int[1024];//counts how often which response is returned
+    private SaveThread saveThread = null; //a handle to the url-save-thread, may be null
+
 
     private LinkedListImp<String> buffer = new LinkedListImp<>(); //a buffer needed for asynchronous behavior
-
-
     /**
      * constructor for class webscraper, initializes and starts the crawling
      * @param option specifies the options
@@ -38,12 +39,11 @@ public class WebCrawler {
         try {
             url = new URL(option.baseUrl);
             this.options = option;
-            init(option.opt,option.databasePath);
+            init(option);
             if(threadPool[0].fetchThisSite(url))
                 threadPoolBusy[0] = true;
             else
                 throw new Exception("Couldn't start Thread 0");
-            databaseThread = new PrintToConsole(); //TODO change this to be dynamic
             run();
         } catch (Exception e) {
             e.printStackTrace();
@@ -55,17 +55,19 @@ public class WebCrawler {
      * @param option specifies which crawling scheme shall be used
      * @throws Exception
      */
-    private void init(CrawlerOptions.Options option,String databaseUrl) throws Exception {
+    private void init(CrawlerOptions option) throws Exception {
         //TODO hops, time, options, url, db
         //init db thread
-        if(databaseUrl != null) {
-            //databaseThread = new MySqlDatabase(this,databaseUrl);
-            //databseThread.start(); //TODO figure this
+        if(option.databasePath == null || option.databasePath.equals(""))
+            databaseThread = new PrintToConsole();
+        else {
+            databaseThread = new MySqlDatabase(this,option.databasePath); //TODO figure this out
         }
+        databaseThread.start();
         //init scrapethreads (in threadpool)
         threadPool = new CrawlThread[MAX_THREAD];
         threadPoolBusy = new boolean[MAX_THREAD];
-        SaveThread saveThread = null;
+
 
         if(options.saveDirectory != null) {
             saveThread = new SaveThread(options, url.toString());
@@ -103,8 +105,10 @@ public class WebCrawler {
                         if(timeoutCounter-- == 0)
                         {
                             stopCrawler();
+                            //TODO test this, and measure overhead
+                            //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
                         }
-                        //TODO check if getNewSite() returns null -> decrease counter or sth to terminate eventually
+
                     }
                 }
             }
@@ -186,6 +190,7 @@ public class WebCrawler {
             stopAllCrawlingThreads();
             stopCheckUrlThread();
             stopDatabaseThread();
+            stopSaveThread();
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -211,8 +216,19 @@ public class WebCrawler {
      * Stops the databaseThread
      * @throws Exception
      */
-    private void stopDatabaseThread()throws Exception{  //TODO do this for saveThread too
+    private void stopDatabaseThread()throws Exception{
         while (databaseThread.stopThread()){
+            Thread.sleep(100);
+        }
+    }
+
+    /**
+     * Stops the SaveThread
+     * @throws Exception
+     */
+    private void stopSaveThread() throws Exception{
+        if(saveThread == null) return;
+        while (saveThread.stopThread()){
             Thread.sleep(100);
         }
     }

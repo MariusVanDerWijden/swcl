@@ -13,6 +13,7 @@ public class SaveThread extends Thread{
     private LinkedListImp<Site> buffer;
     private LinkedListImp<Site> sites;
     private String url;
+    private boolean ready = true;
 
     public SaveThread(CrawlerOptions options, String url){
         this.options = options;
@@ -62,6 +63,17 @@ public class SaveThread extends Thread{
     }
 
     public synchronized void addFile(String data, String path){
-        buffer.add(new Site(data,path));
+        if(ready)
+            buffer.add(new Site(data,path));
+    }
+
+
+    /**
+     * Politely asks this thread to stop, after writing out his Buffer
+     * @return boolean indicating if the buffer is written out
+     */
+    public boolean stopThread(){
+        ready = false;
+        return buffer.isEmpty() && sites.isEmpty();
     }
 }
