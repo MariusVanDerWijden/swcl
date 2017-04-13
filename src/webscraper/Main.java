@@ -1,7 +1,9 @@
 package webscraper;
 
+import webscraper.crawler.CrawlerOptions;
+import webscraper.crawler.WebCrawler;
+
 import java.lang.reflect.MalformedParametersException;
-import java.sql.JDBCType;
 
 /**
  * Created by matematik on 4/29/16.

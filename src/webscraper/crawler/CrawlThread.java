@@ -1,5 +1,6 @@
-package webscraper;
+package webscraper.crawler;
 
+import webscraper.filesave.SaveThread;
 import webscraper.list.LinkedListImp;
 import webscraper.list.ListObject;
 

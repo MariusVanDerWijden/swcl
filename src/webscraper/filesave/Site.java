@@ -1,4 +1,4 @@
-package webscraper;
+package webscraper.filesave;
 
 /**
  * Created by matematik on 3/20/17.

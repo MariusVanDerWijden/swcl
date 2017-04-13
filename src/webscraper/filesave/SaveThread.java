@@ -1,6 +1,8 @@
-package webscraper;
+package webscraper.filesave;
 
+import webscraper.crawler.CrawlerOptions;
 import webscraper.list.LinkedListImp;
+import webscraper.list.ListObject;
 
 import java.io.File;
 
@@ -28,8 +30,11 @@ public class SaveThread extends Thread{
             buffer.clear();
         }
         if(sites.size() >= 0){
-            //TODO take every entry and save it
-            saveToFile(sites.pop());
+            ListObject<Site> ptr = sites.getHead();
+            while (ptr != null) { //TODO test this
+                saveToFile(ptr.data);
+                ptr = ptr.nextObject;
+            }
             sites.clear();
         }try{
             Thread.sleep(100);

@@ -1,4 +1,4 @@
-package webscraper;
+package webscraper.crawler;
 
 import webscraper.list.LinkedListImp;
 

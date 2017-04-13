@@ -1,8 +1,12 @@
-package webscraper;
+package webscraper.crawler;
 
+import webscraper.crawler.CheckUrlThread;
+import webscraper.crawler.CrawlThread;
+import webscraper.crawler.CrawlerOptions;
 import webscraper.database.DatabaseConnector;
 import webscraper.database.MySqlDatabase;
 import webscraper.database.PrintToConsole;
+import webscraper.filesave.SaveThread;
 import webscraper.list.LinkedListImp;
 import webscraper.list.ListObject;
 
@@ -27,7 +31,6 @@ public class WebCrawler {
     private CrawlerOptions options; //Options to be used
     private int[] httpResponseCode = new int[1024];//counts how often which response is returned
     private SaveThread saveThread = null; //a handle to the url-save-thread, may be null
-
 
     private LinkedListImp<String> buffer = new LinkedListImp<>(); //a buffer needed for asynchronous behavior
     /**
@@ -135,7 +138,7 @@ public class WebCrawler {
         if(httpResponse!=-1)
             this.httpResponseCode[httpResponse]++;
         threadPoolBusy[threadId] = false;
-        if(foundUrls == null) return;
+        if(foundUrls == null || foundUrls.isEmpty()) return;
         addToBuffer(foundUrls,url);
     }
 
@@ -149,10 +152,10 @@ public class WebCrawler {
 
     /**
      * Adds a list of strings to the buffer
+     * Please only call me with list != null
      * @param list list of urls
      */
     private synchronized void addToBuffer(LinkedListImp<String> list, String site){
-        if(list == null)return;
         buffer.addAll(list);
         //TODO I'm only for tests, delete me please
         System.out.println("###############################################################################");

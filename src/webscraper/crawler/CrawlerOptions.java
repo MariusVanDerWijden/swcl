@@ -1,15 +1,15 @@
-package webscraper;
+package webscraper.crawler;
 
 /**
  * Created by matematik on 3/8/17.
  */
 public class CrawlerOptions {
-    String baseUrl;
-    Options opt = Options.CRAWL_ALL_LINKS;
-    int maxHops = -1;
-    int maxTime = -1;
-    String databasePath = null;
-    String saveDirectory = null; //If not null, we save the content of every crawled site to this directory
+    public String baseUrl;
+    public Options opt = Options.CRAWL_ALL_LINKS;
+    public int maxHops = -1;
+    public int maxTime = -1;
+    public String databasePath = null;
+    public String saveDirectory = null; //If not null, we save the content of every crawled site to this directory
 
     public String toString(){
         String s = "BaseUrl: "+baseUrl;

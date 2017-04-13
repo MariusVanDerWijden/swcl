@@ -1,10 +1,9 @@
 package webscraper.database;
 
-import webscraper.WebCrawler;
+import webscraper.crawler.WebCrawler;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
-import java.util.Collection;
 
 /**
  * Created by matematik on 4/29/16.
