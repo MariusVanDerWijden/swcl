@@ -15,7 +15,8 @@ import java.util.LinkedList;
 public class TestPerformance {
 
     public static void main(String[] args){
-        testAddAll();
+        //testIncrementURL();
+        //testAddAll();
     }
 
 
@@ -47,6 +48,40 @@ public class TestPerformance {
         }
         */
         System.out.println("Same: "+ equal + " \n LinkedList:\t" + (l2-l1) + "\nLinkedListImp:\t" + (l4-l3));
+    }
+
+    private static void testIncrementURL(){
+        System.out.println(incrementUrl("127.0.0.1"));
+    }
+
+    private static String incrementUrl(String url){
+        String[] newUrl = new String[4];
+        String result = "";
+        int q = 0;
+        for(int i = 0; i  < url.length(); i++) {
+            if (newUrl[q] == null) newUrl[q] = "";
+            if (url.charAt(i) == '.')
+                q++;
+            else
+                newUrl[q] += url.charAt(i);
+        }
+        for(int  i = 0; i < newUrl.length; i++){
+            System.out.println("Asdf:"+newUrl[i]);
+        }
+
+        boolean b = false;
+        for(int i = 3; i >= 0; i--)
+            if(newUrl[i] == "")
+                result = "." + result; //TODO malformedURLException //TODO end here to prevent another point, if b! false
+            else if(!b && newUrl[i] == "255")
+                result = "0." + result;
+            else if(!b) {
+                result =  (Integer.valueOf(newUrl[i]) + 1) + "." + result;
+                b = true;
+            }
+            else
+                result = newUrl[i] + "." + result;
+        return result;
     }
 
     private static void testAddAll(){
